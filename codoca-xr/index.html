@@ -425,6 +425,21 @@ renderer.domElement.addEventListener('pointerup',e=>{if(!downXY||renderer.xr.isP
   ray.setFromCamera({x:(e.clientX-r.left)/r.width*2-1,y:-(e.clientY-r.top)/r.height*2+1},camera);
   panelSelect(ray.intersectObjects(targets,false)[0]||null);});
 
+// ===== Manos sin controles: pellizco = gatillo, puño = agarrar =====
+const hands=[0,1].map(i=>{const hd=renderer.xr.getHand(i);scene.add(hd);hd.userData.fist=false;return hd;});
+const jointGeo=new THREE.SphereGeometry(1,10,8);
+const jointMat=new THREE.MeshBasicMaterial({color:0xdfe9ff,transparent:true,opacity:.85});
+const tipMat=new THREE.MeshBasicMaterial({color:0xf2b705});
+const TIPS=['index-finger-tip','middle-finger-tip','ring-finger-tip','pinky-finger-tip'];
+function updateHands(){hands.forEach((hd,i)=>{const J=hd.joints;if(!J||!J.wrist)return;
+  for(const name in J){const j=J[name];const tip=name.endsWith('tip');
+    if(!j.userData.dot){const m=new THREE.Mesh(jointGeo,tip?tipMat:jointMat);j.add(m);j.userData.dot=m;}
+    j.userData.dot.scale.setScalar((j.jointRadius||.008)*(tip?1.1:.9));}
+  const w=J.wrist.position;let s=0,n=0;TIPS.forEach(k=>{if(J[k]){s+=J[k].position.distanceTo(w);n++;}});
+  const fist=hd.visible&&n===4&&s/n<.085;
+  if(fist!==hd.userData.fist){hd.userData.fist=fist;ctrls[i].dispatchEvent({type:fist?'squeezestart':'squeezeend'});}
+});}
+
 // ===== Recorrido caminando: el guía va adelante y la persona lo sigue =====
 const tour={on:false,wait:-1,token:0,cur:-1};
 const LAST_XR=7; // la estación 8 (vista general) es la despedida
@@ -462,7 +477,7 @@ async function startXR(mode){
   try{
     voiceOn=true;bVoz.setAttribute('aria-pressed','true');bVoz.textContent='🔊 Voz de Luigi activada';
     try{speechSynthesis.speak(new SpeechSynthesisUtterance(''));}catch(e){}
-    const s=await navigator.xr.requestSession(mode,{optionalFeatures:['local-floor']});
+    const s=await navigator.xr.requestSession(mode,{optionalFeatures:['local-floor','hand-tracking']});
     renderer.xr.setReferenceSpaceType('local-floor');
     const ar=mode==='immersive-ar';
     roomShell.visible=!ar;scene.background=ar?null:bgColor;
@@ -526,6 +541,7 @@ renderer.setAnimationLoop(()=>{
   if(renderer.xr.isPresenting){targets.forEach(f=>f.material.color.setHex(0xffffff));
     ctrls.forEach(c=>{const h=calib.step<3?null:hitPanel(c);c.userData.line.scale.z=h?h.distance:3;c.userData.line.visible=calib.step>=3||true;
       if(h&&!c.userData.held)h.object.material.color.setHex(0xd6e6ff);});}
+  if(renderer.xr.isPresenting)updateHands();
   if(spot.visible){const k=1+Math.sin(now*4)*.08;spot.scale.set(k,k,1);}
   if(renderer.xr.isPresenting&&tour.on&&tour.wait>=0){const hp=new THREE.Vector3();renderer.xr.getCamera(camera).getWorldPosition(hp);world.worldToLocal(hp);
     const s=stations[tour.wait];if(Math.hypot(hp.x-s.pos[0]*SX,hp.z-s.pos[2]*SZ)<0.8)arrive(tour.wait);}

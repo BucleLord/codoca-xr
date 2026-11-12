@@ -1,0 +1,14 @@
+RECORRIDO VIRTUAL CODOCA - PAQUETE PARA META QUEST 3
+
+1. Crea una cuenta gratis en github.com.
+2. Crea un repositorio público llamado: codoca-xr
+3. Toca "uploading an existing file" y arrastra TODO el contenido de esta carpeta
+   (index.html, manifest.webmanifest, sw.js y las carpetas js e icons). Toca "Commit changes".
+4. En el repositorio: Settings > Pages > Branch: main / (root) > Save.
+5. En 1-2 minutos el enlace queda listo: https://TU-USUARIO.github.io/codoca-xr/
+6. En la Quest 3, abre ese enlace en el navegador.
+   - Para instalarlo como app: menú del navegador (tres puntos) > Instalar.
+   - Elige el modo (Recorrido sugerido o Exploración libre) y toca "Realidad mixta (AR)".
+7. Para actualizar: vuelve a subir el index.html nuevo al mismo repositorio.
+
+Después de abrirlo una vez con internet, queda guardado en las gafas y funciona aunque falle el Wi-Fi.

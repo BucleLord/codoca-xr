@@ -80,6 +80,10 @@ const bgColor=new THREE.Color('#dfe6ee');
 scene.background=bgColor;
 const camera=new THREE.PerspectiveCamera(65,1,0.05,100);
 const world=new THREE.Group(); scene.add(world);
+// Pose de la cabeza: en XR se lee la matriz de la cámara directamente (getWorldPosition la reinicia en three r128)
+function headM(){return renderer.xr.isPresenting?renderer.xr.getCamera(camera).matrixWorld:camera.matrixWorld;}
+function headPos(v){return v.setFromMatrixPosition(headM());}
+function headQuat(q){const p=new THREE.Vector3(),s=new THREE.Vector3();headM().decompose(p,q,s);return q;}
 const roomShell=new THREE.Group(); world.add(roomShell);
 
 scene.add(new THREE.HemisphereLight(0xffffff,0xb8aa98,0.85));
@@ -422,7 +426,7 @@ function fitRoom(frame,ref,planes){
   let [u0,u1,v0,v1]=bounds();
   if(v1-v0>u1-u0){const t=U;U=V;V=t.clone().negate();[u0,u1,v0,v1]=bounds();}
   if(u1-u0<2||v1-v0<2)return null;
-  const xc=renderer.xr.getCamera(camera);const hp=new THREE.Vector3(),hq=new THREE.Quaternion();xc.getWorldPosition(hp);xc.getWorldQuaternion(hq);
+  const xc=renderer.xr.getCamera(camera);const hp=new THREE.Vector3(),hq=new THREE.Quaternion();headPos(hp);headQuat(hq);
   let uE,vP;
   if(door){const du=door.dot(U),dv=door.dot(V);uE=Math.abs(du-u0)<Math.abs(du-u1)?u0:u1;vP=Math.abs(dv-v0)<Math.abs(dv-v1)?v0:v1;}
   else{const f=new THREE.Vector3(0,0,-1).applyQuaternion(hq);f.y=0;f.normalize();const left=new THREE.Vector3(f.z,0,-f.x);
@@ -455,7 +459,7 @@ function viewCam(){return renderer.xr.isPresenting?renderer.xr.getCamera(camera)
 function remember(g){if(!g.userData.home)g.userData.home={p:g.position.clone(),q:g.quaternion.clone()};}
 function bringFront(g){
   if(outPanel&&outPanel!==g)sendHome(outPanel);remember(g);
-  const cam=viewCam();const cp=new THREE.Vector3(),cq=new THREE.Quaternion();cam.getWorldPosition(cp);cam.getWorldQuaternion(cq);
+  const cam=viewCam();const cp=new THREE.Vector3(),cq=new THREE.Quaternion();headPos(cp);headQuat(cq);
   const fwd=new THREE.Vector3(0,0,-1).applyQuaternion(cq);fwd.y=0;fwd.normalize();
   const target=cp.clone().addScaledVector(fwd,1.0);target.y=cp.y-0.08;
   const d=new THREE.Object3D();d.position.copy(target);d.lookAt(cp.x,target.y,cp.z);
@@ -574,7 +578,8 @@ async function startXR(mode){
   try{
     voiceOn=true;bVoz.setAttribute('aria-pressed','true');bVoz.textContent='🔊 Voz de Luigi activada';
     try{speechSynthesis.speak(new SpeechSynthesisUtterance(''));}catch(e){}
-    const s=await navigator.xr.requestSession(mode,{optionalFeatures:['local-floor','hand-tracking','plane-detection']});
+    const feats=['local-floor','hand-tracking'];if(mode==='immersive-ar'&&!/sinmapa/.test(location.search))feats.push('plane-detection');
+    const s=await navigator.xr.requestSession(mode,{optionalFeatures:feats});
     isAR=mode==='immersive-ar';
     renderer.xr.setReferenceSpaceType('local-floor');
     const ar=mode==='immersive-ar';
@@ -601,7 +606,7 @@ document.querySelectorAll('#pad button').forEach(b=>{const m=b.dataset.m;
 const KEYMAP={ArrowUp:'f',KeyW:'f',ArrowDown:'b',KeyS:'b',ArrowLeft:'l',KeyA:'l',ArrowRight:'r',KeyD:'r'};
 addEventListener('keydown',e=>{if(KEYMAP[e.code]){moveKeys.add(KEYMAP[e.code]);e.preventDefault();}});
 addEventListener('keyup',e=>{if(KEYMAP[e.code])moveKeys.delete(KEYMAP[e.code]);});
-function snapTurn(a){const hp=new THREE.Vector3();renderer.xr.getCamera(camera).getWorldPosition(hp);hp.y=0;
+function snapTurn(a){const hp=new THREE.Vector3();headPos(hp);hp.y=0;
   world.position.sub(hp).applyAxisAngle(new THREE.Vector3(0,1,0),a).add(hp);world.rotation.y+=a;}
 let xrFrame=null,loopErr=0;
 renderer.setAnimationLoop((time,frame)=>{xrFrame=frame||null;try{
@@ -610,7 +615,7 @@ renderer.setAnimationLoop((time,frame)=>{xrFrame=frame||null;try{
   if(renderer.xr.isPresenting&&calib.step>=3){const ses=renderer.xr.getSession();
     if(ses)for(const src of ses.inputSources){const gp=src.gamepad;if(!gp||gp.axes.length<4)continue;const ax=gp.axes[2],ay=gp.axes[3];
       if(src.handedness==='left'&&(Math.abs(ax)>.15||Math.abs(ay)>.15)){
-        const qq=new THREE.Quaternion();renderer.xr.getCamera(camera).getWorldQuaternion(qq);
+        const qq=new THREE.Quaternion();headQuat(qq);
         const f=new THREE.Vector3(0,0,-1).applyQuaternion(qq);f.y=0;f.normalize();const r=new THREE.Vector3(-f.z,0,f.x);
         world.position.sub(new THREE.Vector3().addScaledVector(f,-ay).addScaledVector(r,ax).multiplyScalar(1.4*dt));}
       if(src.handedness==='right'){if(Math.abs(ax)>.7){if(!src._snap){src._snap=true;snapTurn(ax>0?Math.PI/6:-Math.PI/6);}}else src._snap=false;}
@@ -643,13 +648,13 @@ renderer.setAnimationLoop((time,frame)=>{xrFrame=frame||null;try{
       if(h&&!c.userData.held)h.object.material.color.setHex(0xd6e6ff);});}
   if(renderer.xr.isPresenting){updateHands();if(autoCal)tryAutoCalib();}
   if(spot.visible){const k=1+Math.sin(now*4)*.08;spot.scale.set(k,k,1);}
-  if(renderer.xr.isPresenting&&tour.on&&tour.wait>=0){const hp=new THREE.Vector3();renderer.xr.getCamera(camera).getWorldPosition(hp);world.worldToLocal(hp);
+  if(renderer.xr.isPresenting&&tour.on&&tour.wait>=0){const hp=new THREE.Vector3();headPos(hp);world.worldToLocal(hp);
     const s=stations[tour.wait];if(Math.hypot(hp.x-s.pos[0]*SX,hp.z-s.pos[2]*SZ)<0.8)arrive(tour.wait);}
-  if(renderer.xr.isPresenting&&instr.visible){const xc=renderer.xr.getCamera(camera);xc.getWorldPosition(_o);xc.getWorldQuaternion(_q);
+  if(renderer.xr.isPresenting&&instr.visible){const xc=renderer.xr.getCamera(camera);headPos(_o);headQuat(_q);
     _d.set(0,-.15,-1.2).applyQuaternion(_q);instr.position.copy(_o).add(_d);instr.quaternion.copy(_q);
     if(calib.step<3){const p=floorHit(activeCtrl);reticle.visible=!!p;if(p)reticle.position.set(p.x,.005,p.z);}}
   if(!renderer.xr.isPresenting)controls.update();
-  }catch(e){if(loopErr++<5)console.error('Error en el bucle:',e);}
+  }catch(e){if(loopErr++<5){console.error('Error en el bucle:',e);if(renderer.xr.isPresenting){drawInstr('Aviso técnico: '+(e&&e.message||e));instr.visible=true;}}}
   renderer.render(scene,camera);
 });
 })();

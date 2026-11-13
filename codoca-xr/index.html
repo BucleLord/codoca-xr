@@ -365,7 +365,7 @@ const CAL=[
 function drawInstr(t){ix.clearRect(0,0,1000,360);ix.fillStyle='rgba(11,46,89,.93)';ix.fillRect(0,0,1000,360);ix.fillStyle=RED;ix.fillRect(0,0,12,360);
   ix.fillStyle='#fff';ix.font=`600 40px ${F}`;ix.textBaseline='top';let y=30;for(const l of wrap(ix,t,920)){if(y>250)break;ix.fillText(l,44,y);y+=52;}
   ix.font=`400 28px ${F}`;ix.fillStyle='#cfe0f5';ix.fillText('Botón lateral: '+(calib.step<3?'saltar la calibración':'volver a calibrar'),44,300);iTex.needsUpdate=true;}
-function startCalib(){returnAll();if(typeof tour!=='undefined'){tour.on=false;tour.wait=-1;tour.token++;spot.visible=false;stopSpeak();}calib.step=0;calib.pts=[];calib.marks.forEach(m=>scene.remove(m));calib.marks=[];world.visible=false;drawInstr(CAL[0]);instr.visible=true;}
+function startCalib(){returnAll();if(typeof tour!=='undefined'){tour.on=false;tour.wait=-1;tour.token++;spot.visible=false;stopSpeak();}calib.step=0;calib.pts=[];calib.marks.forEach(m=>scene.remove(m));calib.marks=[];world.visible=!isAR;drawInstr(CAL[0]);instr.visible=true;}
 function endCalibUI(){reticle.visible=false;instr.visible=false;world.visible=true;calib.marks.forEach(m=>scene.remove(m));calib.marks=[];calib.step=3;}
 const _o=new THREE.Vector3(),_d=new THREE.Vector3(),_q=new THREE.Quaternion();
 function floorHit(c){c.getWorldPosition(_o);c.getWorldQuaternion(_q);_d.set(0,0,-1).applyQuaternion(_q);if(_d.y>-0.01)return null;const t=-_o.y/_d.y;if(t>15)return null;return _o.clone().addScaledVector(_d,t);}
@@ -435,10 +435,12 @@ function fitRoom(frame,ref,planes){
   return [A,B,C];
 }
 function tryAutoCalib(){
-  const frame=renderer.xr.getFrame();const ref=renderer.xr.getReferenceSpace();const planes=frame&&frame.detectedPlanes;
+  const frame=xrFrame;const ref=renderer.xr.getReferenceSpace();const planes=frame&&frame.detectedPlanes;
   if(planes&&planes.size){let res=null;try{res=fitRoom(frame,ref,planes);}catch(e){}
     if(res){autoCal=null;calib.pts=res;finishCalib(true);return;}}
-  if(performance.now()-autoCal.t0>6000){autoCal=null;startCalib();drawInstr('No encontré el mapa del aula en la Quest. '+CAL[0]);}
+  if(performance.now()-autoCal.t0>6000){autoCal=null;
+    if(!isAR){endCalibUI();drawInstr('Recorrido listo. Para alinearlo con el aula real, presiona el botón lateral sin apuntar a nada.');instr.visible=true;setTimeout(()=>{if(calib.step>=3)instr.visible=false;},6000);startChosen();}
+    else{startCalib();drawInstr('No encontré el mapa del aula en la Quest. '+CAL[0]);}}
 }
 
 // ===== Letreros desplegables: se traen al frente, se agarran y se devuelven =====
@@ -601,7 +603,8 @@ addEventListener('keydown',e=>{if(KEYMAP[e.code]){moveKeys.add(KEYMAP[e.code]);e
 addEventListener('keyup',e=>{if(KEYMAP[e.code])moveKeys.delete(KEYMAP[e.code]);});
 function snapTurn(a){const hp=new THREE.Vector3();renderer.xr.getCamera(camera).getWorldPosition(hp);hp.y=0;
   world.position.sub(hp).applyAxisAngle(new THREE.Vector3(0,1,0),a).add(hp);world.rotation.y+=a;}
-renderer.setAnimationLoop(()=>{
+let xrFrame=null,loopErr=0;
+renderer.setAnimationLoop((time,frame)=>{xrFrame=frame||null;try{
   const tnow=performance.now();const dt=Math.min(.05,(tnow-lastT)/1000);lastT=tnow;
   // gafas: joystick izquierdo camina, derecho gira de a 30 grados
   if(renderer.xr.isPresenting&&calib.step>=3){const ses=renderer.xr.getSession();
@@ -646,6 +649,7 @@ renderer.setAnimationLoop(()=>{
     _d.set(0,-.15,-1.2).applyQuaternion(_q);instr.position.copy(_o).add(_d);instr.quaternion.copy(_q);
     if(calib.step<3){const p=floorHit(activeCtrl);reticle.visible=!!p;if(p)reticle.position.set(p.x,.005,p.z);}}
   if(!renderer.xr.isPresenting)controls.update();
+  }catch(e){if(loopErr++<5)console.error('Error en el bucle:',e);}
   renderer.render(scene,camera);
 });
 })();

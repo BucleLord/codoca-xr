@@ -163,48 +163,32 @@ const onXL=(g,z,y)=>{g.position.set(L-.02,y,z);g.rotation.y=-Math.PI/2;};
 const onX0=(g,z,y)=>{g.position.set(.02,y,z);g.rotation.y=Math.PI/2;};
 
 // Muro de la entrada: bienvenida y contacto
-onX0(panel({w:4.6,h:.62,title:'CODOCA · Consejo Dominicano para la Calidad',sayTitle:'CODOCA',gp:[1.1,5.1],say:'Esta es la oficina del Consejo Dominicano para la Calidad, el CODOCA: la institución que dirige la política de calidad en la República Dominicana.'}),3.0,2.58);
+onX0(panel({w:4.6,h:.62,title:'CODOCA · Consejo Dominicano para la Calidad',sayTitle:'CODOCA',gp:[1.3,3.9],say:'Esta es la oficina del Consejo Dominicano para la Calidad, el CODOCA: la institución que dirige la política de calidad en la República Dominicana.'}),3.0,2.58);
 onX0(panel({w:1.6,h:1.4,title:'Contacto',sayTitle:'Contacto',gp:[1.1,2.6],say:'Si quieres comunicarte con el CODOCA, su sede está en la avenida 27 de Febrero número 306, en Bella Vista, Santo Domingo. Su teléfono es el 809 375 2255 y su página web es codoca punto gob punto do.',blocks:[{h:'Sede',p:'Av. 27 de Febrero No. 306, Bella Vista, Santo Domingo.'},{h:'Teléfono',p:'(809) 375-2255'},{h:'Web',p:'codoca.gob.do'}]}),3.9,1.5);
 // Muro trasero (opuesto a la pizarra): ¿Qué es? y SIDOCAL
-onZW(panel({w:3.3,h:1.55,st:1,title:'¿Qué es el CODOCA?',big:'La máxima autoridad del Sistema Dominicano para la Calidad (SIDOCAL).',blocks:[{p:'Entidad pública descentralizada, adscrita al Ministerio de Industria, Comercio y Mipymes (MICM), con autonomía administrativa, técnica y financiera. Formula, coordina y difunde las políticas de calidad del país, con sede en Santo Domingo y alcance nacional.'}]}),2.2,1.6);
-onZW(panel({w:3.0,h:1.55,st:6,title:'El sistema: SIDOCAL',blocks:[{p:'Tres instituciones trabajan juntas para crear una cultura de la calidad en el país.'}],cols:[
+onZW(panel({w:2.7,h:1.55,st:1,title:'¿Qué es el CODOCA?',big:'La máxima autoridad del Sistema Dominicano para la Calidad (SIDOCAL).',blocks:[{p:'Entidad pública descentralizada, adscrita al Ministerio de Industria, Comercio y Mipymes (MICM), con autonomía administrativa, técnica y financiera. Formula, coordina y difunde las políticas de calidad del país, con sede en Santo Domingo y alcance nacional.'}]}),1.55,1.6);
+onZW(panel({w:2.7,h:1.55,st:6,title:'El sistema: SIDOCAL',blocks:[{p:'Tres instituciones trabajan juntas para crear una cultura de la calidad en el país.'}],cols:[
  {h:'CODOCA',color:NAVY,p:'Órgano rector: dicta y coordina la política de calidad.'},
  {h:'INDOCAL',color:TEAL,p:'Normas técnicas y metrología (medición).'},
- {h:'ODAC',color:RED,p:'Acredita a los organismos que evalúan la conformidad.'}]}),5.9,1.6);
+ {h:'ODAC',color:RED,p:'Acredita a los organismos que evalúan la conformidad.'}]}),4.45,1.6);
 // Muro del fondo: misión, visión y marco legal
 onXL(panel({w:1.6,h:1.6,st:4,title:'Misión',accent:TEAL,blocks:[{p:'Representar al más alto nivel al SIDOCAL y ayudar a que las instituciones que lo forman crezcan, se fortalezcan y sean reconocidas.'}]}),1.0,1.6);
 onXL(panel({w:1.6,h:1.6,st:4,title:'Visión',accent:TEAL,blocks:[{p:'Ser una institución sólida y referente, dentro y fuera del país, que impulse la calidad y la competitividad de los productos y servicios dominicanos.'}]}),3.0,1.6);
 onXL(panel({w:1.6,h:1.6,st:2,title:'Marco legal',accent:RED,blocks:[{h:'Ley 166-12',p:'Del 12 de julio de 2012. Crea el SIDOCAL y, en su artículo 11, el CODOCA.'},{h:'Ley 37-17',p:'Reorganiza el MICM y adscribe a él al CODOCA.'}]}),5.0,1.6);
-// Tótem A (doble cara): valores hacia la entrada, estructura hacia el fondo
-const tVal=panel({w:2.0,h:1.7,st:5,title:'Nuestros valores',blocks:[
+// Valores y estructura: pared de la entrada
+const tVal=panel({w:1.05,h:1.4,st:5,title:'Nuestros valores',blocks:[
  {h:'Transparencia',p:'Decisiones con base técnica y sin ocultar información sobre riesgos.'},
  {h:'Imparcialidad',p:'Independencia y decisiones basadas en evidencia objetiva.'},
  {h:'Integridad, eficiencia y confiabilidad',p:'Apego a la ética, buen uso de los recursos y solvencia técnica que genera confianza.'}]});
-tVal.position.set(2.985,1.2,2.9);tVal.rotation.y=-Math.PI/2;
-const tEst=panel({w:2.0,h:1.7,st:3,title:'Estructura',blocks:[{h:'Consejo Directivo',p:'Lo preside el ministro del MICM; define la política nacional de calidad.'},{h:'Comisión Técnica de Expertos',p:'Técnicos que deciden asuntos especializados.'},{h:'Secretaría General y Dirección Técnica',p:'Ejecutan y articulan el trabajo diario.'}]});
-tEst.position.set(3.015,1.2,2.9);tEst.rotation.y=Math.PI/2;
-// Tótem B: objetivos, mirando hacia el fondo
-const totem=panel({w:1.5,h:1.9,st:8,title:'Objetivos',blocks:[
+onX0(tVal,5.37,1.5);
+const tEst=panel({w:1.0,h:1.4,st:3,title:'Estructura',blocks:[{h:'Consejo Directivo',p:'Lo preside el ministro del MICM; define la política nacional de calidad.'},{h:'Comisión Técnica de Expertos',p:'Técnicos que deciden asuntos especializados.'},{h:'Secretaría General y Dirección Técnica',p:'Ejecutan y articulan el trabajo diario.'}]});
+onX0(tEst,2.45,1.5);
+// Objetivos: pared trasera
+const totem=panel({w:1.8,h:1.55,st:8,title:'Objetivos',blocks:[
  {h:'General',p:'Contribuir al desarrollo, fortalecimiento y reconocimiento del SIDOCAL.'},
  {h:'Específicos',p:'Ser el consejo rector del sistema; fijar sus lineamientos según prácticas internacionales; articular políticas de metrología, normalización, ensayo, acreditación y certificación; revisar el trabajo de INDOCAL y ODAC; y cooperar con organismos nacionales e internacionales.'}]});
-totem.position.set(5.4,1.25,2.9);totem.rotation.y=Math.PI/2;
-// Muebles del centro: los letreros quedan guardados y se despliegan al toque
-const CAB_H=.9;const labels=[];
-function labelPlane(text,w){const c=document.createElement('canvas');c.width=Math.round(w*400);c.height=200;const x=c.getContext('2d');
-  x.fillStyle=NAVY;x.fillRect(0,0,c.width,200);x.fillStyle='#f2b705';x.fillRect(0,0,c.width,10);
-  x.fillStyle='#fff';x.font=`800 62px ${F}`;x.textBaseline='middle';x.fillText(text,30,82);
-  x.font=`400 38px ${F}`;x.fillStyle='#cfe0f5';x.fillText('Toca para desplegar',30,150);
-  const t=new THREE.CanvasTexture(c);t.encoding=THREE.sRGBEncoding;return new THREE.Mesh(new THREE.PlaneGeometry(w,.25*w*200/(w*100)),new THREE.MeshBasicMaterial({map:t}));}
-function cabinet(x0,z0,len,sides){
-  box(.4,CAB_H,len+.1,std('#0b2e59'),x0,CAB_H/2,z0,world);
-  box(.42,.03,len+.12,std('#f2b705'),x0,CAB_H,z0,world);
-  sides.forEach(sd=>{const g=sd.g;const lp=labelPlane(sd.label,len-.1);lp.position.set(x0+sd.dir*.205,CAB_H-.32,z0);lp.rotation.y=sd.dir*Math.PI/2;
-    lp.userData.cabinetOf=g;world.add(lp);labels.push(lp);
-    g.position.x=x0+sd.dir*.015;g.userData.fold={v:0,to:0,yOpen:CAB_H+.03+g.userData.h/2,yClosed:CAB_H-.03};
-    g.position.y=g.userData.fold.yClosed;g.scale.y=.01;});
-}
-cabinet(3.0,2.9,2.0,[{dir:-1,g:tVal,label:'Nuestros valores'},{dir:1,g:tEst,label:'Estructura'}]);
-cabinet(5.4,2.9,1.5,[{dir:1,g:totem,label:'Objetivos'}]);
+onZW(totem,6.9,1.6);
+const labels=[]; // (los muebles del centro se quitaron)
 // ===== Mesa «El SIDOCAL en tu vida diaria» con sellos manipulables =====
 function tableGraphic(w,h){
   const c=document.createElement('canvas');c.width=Math.round(w*700);c.height=Math.round(h*700);const x=c.getContext('2d');
@@ -292,21 +276,21 @@ controls.enableZoom=false;controls.enablePan=false;controls.enableDamping=true;c
 const stations=[
  {n:'Entrada',pos:[1.0,1.6,2.2],look:[4,1.4,0],g:[2.4,1.0],
   t:'¡Hola, bienvenidos! Soy Luigi, su guía. Desde el Politécnico Padre Luis Variara los invito a conocer la oficina virtual del Consejo Dominicano para la Calidad, el CODOCA. Acompáñenme a descubrir quiénes son, qué hacen y qué ley los respalda.'},
- {n:'¿Qué es?',pos:[2.2,1.6,4.4],look:[2.2,1.55,6],g:[4.2,5.0],
+ {n:'¿Qué es?',pos:[1.55,1.6,4.3],look:[1.55,1.55,6],g:[3.0,5.2],
   t:'El CODOCA es la máxima autoridad del Sistema Dominicano para la Calidad, el SIDOCAL. Es una entidad pública descentralizada, adscrita al Ministerio de Industria, Comercio y Mipymes, que formula, coordina y difunde las políticas de calidad de todo el país.'},
- {n:'Marco legal',pos:[6.4,1.6,4.6],look:[8,1.55,5.0],g:[7.2,4.0],
+ {n:'Marco legal',pos:[6.3,1.6,4.9],look:[8,1.55,5.0],g:[7.2,4.0],
   t:'Su base legal es la Ley 166-12, del 12 de julio de 2012, que crea el Sistema Dominicano para la Calidad y, en su artículo 11, al CODOCA. Además, la Ley 37-17 lo adscribe al Ministerio de Industria, Comercio y Mipymes.'},
- {n:'Estructura',pos:[4.3,1.6,2.9],look:[3.0,1.4,2.9],g:[3.7,1.5],
+ {n:'Estructura',pos:[1.7,1.6,2.45],look:[0,1.5,2.45],g:[1.0,3.6],
   t:'El CODOCA se organiza en un Consejo Directivo, presidido por el ministro de Industria, Comercio y Mipymes; una Comisión Técnica de Expertos; una Secretaría General y una Dirección Técnica.'},
  {n:'Misión y visión',pos:[5.9,1.6,1.2],look:[8,1.55,2.0],g:[6.9,0.45],
   t:'Su misión es representar al más alto nivel al SIDOCAL y fortalecer a las instituciones que lo forman. Su visión es ser un referente, dentro y fuera del país, que impulse la calidad y la competitividad de nuestros productos y servicios.'},
- {n:'Valores',pos:[1.6,1.6,2.9],look:[3.0,1.4,2.9],g:[2.3,4.3],
+ {n:'Valores',pos:[1.7,1.6,5.0],look:[0,1.5,5.37],g:[1.0,4.2],
   t:'El CODOCA trabaja con cinco valores: transparencia, imparcialidad, integridad y ética, eficiencia y confiabilidad. Sus decisiones se basan en criterios técnicos y en evidencia objetiva.'},
- {n:'SIDOCAL',pos:[5.9,1.6,4.4],look:[5.9,1.55,6],g:[4.1,5.1],
+ {n:'SIDOCAL',pos:[4.45,1.6,4.3],look:[4.45,1.55,6],g:[3.0,5.2],
   t:'El SIDOCAL lo forman tres instituciones: el CODOCA, que dicta la política de calidad; el INDOCAL, encargado de las normas técnicas y la metrología; y el ODAC, que acredita a los organismos que evalúan la conformidad.'},
  {n:'En la vida real',pos:[4.3,1.6,2.15],look:[4.3,1.1,0.9],g:[2.4,1.3],
   t:'¿Dónde ves el SIDOCAL en tu día a día? En la bomba de combustible, en la balanza del colmado, en los productos que compras, en la cocina de un restaurante y en los laboratorios que analizan el agua y los alimentos. Toca los sellos que flotan sobre la mesa para conocerlos.'},
- {n:'Objetivos',pos:[6.7,1.6,2.9],look:[5.4,1.3,2.9],g:[6.1,1.5],
+ {n:'Objetivos',pos:[6.9,1.6,4.3],look:[6.9,1.55,6],g:[5.9,5.2],
   t:'Su objetivo general es contribuir al desarrollo, fortalecimiento y reconocimiento del SIDOCAL, articulando las políticas de metrología, normalización, ensayo, acreditación y certificación, y cooperando con organismos nacionales e internacionales.'},
  {n:'Vista general',pos:[-2.5,8.5,9.5],look:[4,0,3],orbit:true,g:[4,2.6],
   t:'Así queda la oficina completa. Gracias por acompañarme en este recorrido por el Consejo Dominicano para la Calidad.'},
@@ -387,8 +371,19 @@ const _o=new THREE.Vector3(),_d=new THREE.Vector3(),_q=new THREE.Quaternion();
 function floorHit(c){c.getWorldPosition(_o);c.getWorldQuaternion(_q);_d.set(0,0,-1).applyQuaternion(_q);if(_d.y>-0.01)return null;const t=-_o.y/_d.y;if(t>15)return null;return _o.clone().addScaledVector(_d,t);}
 const ctrls=[0,1].map(i=>{const c=renderer.xr.getController(i);scene.add(c);return c;});
 let activeCtrl=ctrls[0];
-ctrls.forEach(c=>{c.addEventListener('selectstart',()=>activeCtrl=c);c.addEventListener('select',()=>onSelect(c));c.addEventListener('squeeze',()=>onSqueeze(c));});
+ctrls.forEach(c=>{c.addEventListener('selectstart',()=>{activeCtrl=c;onSelectStart(c);});c.addEventListener('selectend',()=>onSelectEnd(c));c.addEventListener('select',()=>onSelect(c));c.addEventListener('squeeze',()=>onSqueeze(c));});
+function onSelectStart(c){if(!renderer.xr.isPresenting||calib.step<3||autoCal)return;
+  const h=hitPanel(c);if(!h||!h.object.userData.panel)return;const g=h.object.userData.panel;if(isClosed(g))return;
+  if(outPanel&&outPanel!==g&&outPanel.parent===world)sendHome(outPanel);
+  remember(g);const k=tweens.findIndex(t=>t.obj===g);if(k>=0)tweens.splice(k,1);
+  c.attach(g);c.userData.held=g;c.userData.selGrab=true;outPanel=g;
+  const s=g.userData.isSeal?.22/g.userData.h:Math.min(.55/g.userData.w,.45/g.userData.h);
+  tween(g,new THREE.Vector3(0,.03,-.3),new THREE.Quaternion(),s,.35);explainPanel(g);}
+function onSelectEnd(c){const g=c.userData.held;if(g&&c.userData.selGrab){const k=tweens.findIndex(t=>t.obj===g);if(k>=0)tweens.splice(k,1);world.attach(g);c.userData.held=null;}
+  setTimeout(()=>{c.userData.selGrab=false;},0);}
 function onSelect(c){if(!renderer.xr.isPresenting)return;
+  if(autoCal){autoCal=null;startCalib();return;}
+  if(c.userData.selGrab)return;
   if(calib.step<3){const p=floorHit(c);if(!p)return;p.y=0;calib.pts.push(p);
     const m=new THREE.Mesh(new THREE.CylinderGeometry(.05,.05,.02,24),new THREE.MeshBasicMaterial({color:0xf2b705}));m.position.copy(p);scene.add(m);calib.marks.push(m);
     calib.step++;if(calib.step<3)drawInstr(CAL[calib.step]);else finishCalib();}
@@ -396,14 +391,55 @@ function onSelect(c){if(!renderer.xr.isPresenting)return;
   else if(tour.on){if(tour.wait>=0)arrive(tour.wait);else stopSpeak();}
   else go((current+1)%stations.length);}
 function onSqueeze(c){if(c&&c.userData.didGrab){c.userData.didGrab=false;return;}if(!renderer.xr.isPresenting)return;if(calib.step<3){endCalibUI();startChosen();}else startCalib();}
-function finishCalib(){
+function finishCalib(auto){
   const [A,B,C]=calib.pts;const xA=B.clone().sub(A);const Lr=xA.length();xA.normalize();
   const zA=new THREE.Vector3().crossVectors(xA,new THREE.Vector3(0,1,0));const Wr=C.clone().sub(A).dot(zA);
   if(Lr<2||Wr<2){calib.step=0;calib.pts=[];calib.marks.forEach(m=>scene.remove(m));calib.marks=[];
     drawInstr(Wr<0?'La tercera esquina debe estar del lado opuesto a la pizarra. Empecemos de nuevo: '+CAL[0]:'Las esquinas quedaron muy cerca. Empecemos de nuevo: '+CAL[0]);return;}
   world.rotation.set(0,Math.atan2(-xA.z,xA.x),0);world.position.copy(A);applyScale(Lr/L,Wr/W);
-  endCalibUI();drawInstr(`¡Listo! Aula medida: ${Lr.toFixed(2)} m de largo por ${Wr.toFixed(2)} m de ancho. Camina por el aula o usa el joystick izquierdo; el derecho gira. Gatillo sobre un letrero: traerlo al frente.`);instr.visible=true;
+  endCalibUI();drawInstr(`${auto?'Aula detectada con el mapa de la Quest':'¡Listo! Aula medida'}: ${Lr.toFixed(2)} m de largo por ${Wr.toFixed(2)} m de ancho. Camina por el aula o usa el joystick izquierdo; el derecho gira. Gatillo sobre un letrero: traerlo al frente.`);instr.visible=true;
   setTimeout(()=>{if(calib.step>=3)instr.visible=false;},5000);startChosen();}
+
+
+// ===== Mapeo automático: usa la configuración de espacio de la Quest (paredes y puerta) =====
+let autoCal=null,isAR=false;
+function startAutoCalib(){startCalib();autoCal={t0:performance.now()};drawInstr('Leyendo el mapa del aula de la Quest… (gatillo: marcar las esquinas a mano)');}
+function fitRoom(frame,ref,planes){
+  const walls=[];let door=null;
+  planes.forEach(pl=>{const pose=frame.getPose(pl.planeSpace,ref);if(!pose)return;
+    const M=new THREE.Matrix4().fromArray(pose.transform.matrix);
+    const pts=Array.from(pl.polygon).map(q=>new THREE.Vector3(q.x,q.y,q.z).applyMatrix4(M));
+    const lab=(pl.semanticLabel||'').toLowerCase();
+    if(/door/.test(lab)){const c=new THREE.Vector3();pts.forEach(q=>c.add(q));door=c.divideScalar(pts.length);return;}
+    if(pl.orientation!=='vertical'||(lab&&lab!=='wall'))return;
+    let a=pts[0],b=pts[0],best=0;for(const q of pts)for(const r of pts){const d=(q.x-r.x)**2+(q.z-r.z)**2;if(d>best){best=d;a=q;b=r;}}
+    if(best>0.36)walls.push([a,b,best]);});
+  if(walls.length<3)return null;
+  walls.sort((x,y)=>y[2]-x[2]);
+  const d0=walls[0][1].clone().sub(walls[0][0]);const ang=Math.atan2(d0.z,d0.x);
+  let U=new THREE.Vector3(Math.cos(ang),0,Math.sin(ang)),V=new THREE.Vector3(-Math.sin(ang),0,Math.cos(ang));
+  const bounds=()=>{let b=[1e9,-1e9,1e9,-1e9];walls.forEach(w=>[w[0],w[1]].forEach(q=>{const u=q.dot(U),v=q.dot(V);b=[Math.min(b[0],u),Math.max(b[1],u),Math.min(b[2],v),Math.max(b[3],v)];}));return b;};
+  let [u0,u1,v0,v1]=bounds();
+  if(v1-v0>u1-u0){const t=U;U=V;V=t.clone().negate();[u0,u1,v0,v1]=bounds();}
+  if(u1-u0<2||v1-v0<2)return null;
+  const xc=renderer.xr.getCamera(camera);const hp=new THREE.Vector3(),hq=new THREE.Quaternion();xc.getWorldPosition(hp);xc.getWorldQuaternion(hq);
+  let uE,vP;
+  if(door){const du=door.dot(U),dv=door.dot(V);uE=Math.abs(du-u0)<Math.abs(du-u1)?u0:u1;vP=Math.abs(dv-v0)<Math.abs(dv-v1)?v0:v1;}
+  else{const f=new THREE.Vector3(0,0,-1).applyQuaternion(hq);f.y=0;f.normalize();const left=new THREE.Vector3(f.z,0,-f.x);
+    const hu=hp.dot(U);uE=Math.abs(hu-u0)<Math.abs(hu-u1)?u0:u1;vP=left.dot(V)>0?v1:v0;}
+  const uO=uE===u0?u1:u0;let vO=vP===v0?v1:v0;
+  const P=(u,v)=>U.clone().multiplyScalar(u).add(V.clone().multiplyScalar(v)).setY(0);
+  let A=P(uE,vP),B=P(uO,vP),C=P(uE,vO);
+  const xA=B.clone().sub(A).normalize(),zA=new THREE.Vector3().crossVectors(xA,new THREE.Vector3(0,1,0));
+  if(C.clone().sub(A).dot(zA)<0){const t=vP;vP=vO;vO=t;A=P(uE,vP);B=P(uO,vP);C=P(uE,vO);}
+  return [A,B,C];
+}
+function tryAutoCalib(){
+  const frame=renderer.xr.getFrame();const ref=renderer.xr.getReferenceSpace();const planes=frame&&frame.detectedPlanes;
+  if(planes&&planes.size){let res=null;try{res=fitRoom(frame,ref,planes);}catch(e){}
+    if(res){autoCal=null;calib.pts=res;finishCalib(true);return;}}
+  if(performance.now()-autoCal.t0>6000){autoCal=null;startCalib();drawInstr('No encontré el mapa del aula en la Quest. '+CAL[0]);}
+}
 
 // ===== Letreros desplegables: se traen al frente, se agarran y se devuelven =====
 const faces=panels.map(g=>{g.children[0].userData.panel=g;return g.children[0];});
@@ -474,14 +510,26 @@ renderer.domElement.addEventListener('pointerup',e=>{if(!downXY||renderer.xr.isP
 
 // ===== Manos sin controles: pellizco = gatillo, puño = agarrar =====
 const hands=[0,1].map(i=>{const hd=renderer.xr.getHand(i);scene.add(hd);hd.userData.fist=false;return hd;});
-const jointGeo=new THREE.SphereGeometry(1,10,8);
-const jointMat=new THREE.MeshBasicMaterial({color:0xdfe9ff,transparent:true,opacity:.85});
-const tipMat=new THREE.MeshBasicMaterial({color:0xf2b705});
 const TIPS=['index-finger-tip','middle-finger-tip','ring-finger-tip','pinky-finger-tip'];
-function updateHands(){hands.forEach((hd,i)=>{const J=hd.joints;if(!J||!J.wrist)return;
-  for(const name in J){const j=J[name];const tip=name.endsWith('tip');
-    if(!j.userData.dot){const m=new THREE.Mesh(jointGeo,tip?tipMat:jointMat);j.add(m);j.userData.dot=m;}
-    j.userData.dot.scale.setScalar((j.jointRadius||.008)*(tip?1.1:.9));}
+const BONES=[['wrist','thumb-metacarpal'],['thumb-metacarpal','thumb-phalanx-proximal'],['thumb-phalanx-proximal','thumb-phalanx-distal'],['thumb-phalanx-distal','thumb-tip']];
+['index-finger','middle-finger','ring-finger','pinky-finger'].forEach(f=>BONES.push(['wrist',f+'-metacarpal'],[f+'-metacarpal',f+'-phalanx-proximal'],[f+'-phalanx-proximal',f+'-phalanx-intermediate'],[f+'-phalanx-intermediate',f+'-phalanx-distal'],[f+'-phalanx-distal',f+'-tip']));
+BONES.push(['index-finger-phalanx-proximal','middle-finger-phalanx-proximal'],['middle-finger-phalanx-proximal','ring-finger-phalanx-proximal'],['ring-finger-phalanx-proximal','pinky-finger-phalanx-proximal'],['index-finger-metacarpal','middle-finger-metacarpal'],['middle-finger-metacarpal','ring-finger-metacarpal'],['ring-finger-metacarpal','pinky-finger-metacarpal'],['thumb-metacarpal','index-finger-metacarpal']);
+const handMat=new THREE.MeshStandardMaterial({color:0xe9effa,roughness:.5,metalness:0});
+const boneGeo=new THREE.CylinderGeometry(1,1,1,12,1,true),knGeo=new THREE.SphereGeometry(1,14,10);
+const tipMat=new THREE.MeshBasicMaterial({color:0xf2b705});
+const _a=new THREE.Vector3(),_b=new THREE.Vector3(),_up=new THREE.Vector3(0,1,0);
+function buildHand(hd){const J=hd.joints;const parts={bones:[],kn:[]};
+  BONES.forEach(([p,q])=>{if(J[p]&&J[q]){const m=new THREE.Mesh(boneGeo,handMat);hd.add(m);parts.bones.push([m,J[p],J[q]]);}});
+  for(const n in J){const m=new THREE.Mesh(knGeo,handMat);hd.add(m);parts.kn.push([m,J[n]]);}
+  const tip=new THREE.Mesh(knGeo,tipMat);hd.add(tip);parts.tip=[tip,J['index-finger-tip']];hd.userData.parts=parts;}
+function updateHands(){hands.forEach((hd,i)=>{const J=hd.joints;if(!J||!J.wrist||!J['pinky-finger-tip'])return;
+  if(!hd.userData.parts)buildHand(hd);const P=hd.userData.parts;const showHand=!isAR;
+  P.bones.forEach(([m,j1,j2])=>{m.visible=showHand&&j1.visible&&j2.visible;if(!m.visible)return;
+    _a.copy(j1.position);_b.copy(j2.position);const len=_a.distanceTo(_b);if(len<1e-4){m.visible=false;return;}
+    const r=Math.min(j1.jointRadius||.008,j2.jointRadius||.008)*.95;
+    m.position.copy(_a).add(_b).multiplyScalar(.5);m.quaternion.setFromUnitVectors(_up,_b.sub(_a).divideScalar(len));m.scale.set(r,len,r);});
+  P.kn.forEach(([m,j])=>{m.visible=showHand&&j.visible;if(m.visible){m.position.copy(j.position);m.scale.setScalar(j.jointRadius||.008);}});
+  const [t,jt]=P.tip;t.visible=!!jt&&jt.visible;if(t.visible){t.position.copy(jt.position);t.scale.setScalar(isAR?.007:.005);}
   const w=J.wrist.position;let s=0,n=0;TIPS.forEach(k=>{if(J[k]){s+=J[k].position.distanceTo(w);n++;}});
   const fist=hd.visible&&n===4&&s/n<.085;
   if(fist!==hd.userData.fist){hd.userData.fist=fist;ctrls[i].dispatchEvent({type:fist?'squeezestart':'squeezeend'});}
@@ -524,14 +572,15 @@ async function startXR(mode){
   try{
     voiceOn=true;bVoz.setAttribute('aria-pressed','true');bVoz.textContent='🔊 Voz de Luigi activada';
     try{speechSynthesis.speak(new SpeechSynthesisUtterance(''));}catch(e){}
-    const s=await navigator.xr.requestSession(mode,{optionalFeatures:['local-floor','hand-tracking']});
+    const s=await navigator.xr.requestSession(mode,{optionalFeatures:['local-floor','hand-tracking','plane-detection']});
+    isAR=mode==='immersive-ar';
     renderer.xr.setReferenceSpaceType('local-floor');
     const ar=mode==='immersive-ar';
     roomShell.visible=!ar;scene.background=ar?null:bgColor;
     placeForXR(true);await renderer.xr.setSession(s);
     bubble.visible=true;ceil.visible=true;
-    startCalib();
-    s.addEventListener('end',()=>{returnAll();tour.on=false;tour.wait=-1;tour.token++;spot.visible=false;stopSpeak();roomShell.visible=true;scene.background=bgColor;placeForXR(false);applyScale(1,1);endCalibUI();bubble.visible=false;go(current,true);});
+    startAutoCalib();
+    s.addEventListener('end',()=>{autoCal=null;isAR=false;returnAll();tour.on=false;tour.wait=-1;tour.token++;spot.visible=false;stopSpeak();roomShell.visible=true;scene.background=bgColor;placeForXR(false);applyScale(1,1);endCalibUI();bubble.visible=false;go(current,true);});
   }catch(e){alert('No se pudo iniciar la sesión inmersiva: '+e.message);}
 }
 const bVR=document.getElementById('btnVR'),bAR=document.getElementById('btnAR');
@@ -589,7 +638,7 @@ renderer.setAnimationLoop(()=>{
   if(renderer.xr.isPresenting){targets.forEach(f=>f.material.color.setHex(0xffffff));
     ctrls.forEach(c=>{const h=calib.step<3?null:hitPanel(c);c.userData.line.scale.z=h?h.distance:3;c.userData.line.visible=calib.step>=3||true;
       if(h&&!c.userData.held)h.object.material.color.setHex(0xd6e6ff);});}
-  if(renderer.xr.isPresenting)updateHands();
+  if(renderer.xr.isPresenting){updateHands();if(autoCal)tryAutoCalib();}
   if(spot.visible){const k=1+Math.sin(now*4)*.08;spot.scale.set(k,k,1);}
   if(renderer.xr.isPresenting&&tour.on&&tour.wait>=0){const hp=new THREE.Vector3();renderer.xr.getCamera(camera).getWorldPosition(hp);world.worldToLocal(hp);
     const s=stations[tour.wait];if(Math.hypot(hp.x-s.pos[0]*SX,hp.z-s.pos[2]*SZ)<0.8)arrive(tour.wait);}

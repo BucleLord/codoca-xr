@@ -4134,7 +4134,7 @@ function panelSelect(hit){
 // Al soltar: el objeto queda flotando sin gravedad (conserva el impulso de la mano) y vuelve despacio a su lugar
 function startFloat(g){const fi=floaters.findIndex(f=>f.g===g);if(fi>=0)floaters.splice(fi,1);if(!g.userData.home)return;
   const v=(g.userData.vel||new THREE.Vector3()).clone();const wq=new THREE.Quaternion();world.getWorldQuaternion(wq);v.applyQuaternion(wq.invert());
-  if(v.length()>1.2)v.setLength(1.2);floaters.push({g,v,t0:performance.now()/1000});outPanel=g;}
+  v.multiplyScalar(.3);if(v.length()>.35)v.setLength(.35);floaters.push({g,v,t0:performance.now()/1000});outPanel=g;}
 // Si se toma otro elemento, los demás regresan rápido a su lugar
 function returnOthers(except){[...floaters].forEach(f=>{if(f.g!==except)sendHome(f.g);});
   if(outPanel&&outPanel!==except&&outPanel.parent===world)sendHome(outPanel);}
@@ -4142,7 +4142,7 @@ function updateFloaters(dt,now){for(let i=floaters.length-1;i>=0;i--){const f=fl
   if(!h||g.parent!==world){floaters.splice(i,1);continue;}
   const age=now-f.t0,pull=age>1.5;
   if(pull)f.v.addScaledVector(h.p.clone().sub(g.position),.35*dt);
-  f.v.multiplyScalar(Math.exp(-(pull?.9:.35)*dt));g.position.addScaledVector(f.v,dt);
+  f.v.multiplyScalar(Math.exp(-(pull?.9:.8)*dt));g.position.addScaledVector(f.v,dt);
   if(pull){if(!g.userData.isSeal)g.quaternion.slerp(h.q,Math.min(1,.5*dt));g.scale.setScalar(g.scale.x+(1-g.scale.x)*Math.min(1,.6*dt));}
   if(pull&&g.position.distanceTo(h.p)<.01&&f.v.length()<.02){g.position.copy(h.p);if(!g.userData.isSeal)g.quaternion.copy(h.q);g.scale.setScalar(1);
     g.userData.home=null;floaters.splice(i,1);if(outPanel===g)outPanel=null;}}}
@@ -4183,19 +4183,21 @@ const HAND_GLB={left:'data:model/gltf-binary;base64,Z2xURgIAAABscQEAlCAAAEpTT057
 const JOINTS=['wrist','thumb-metacarpal','thumb-phalanx-proximal','thumb-phalanx-distal','thumb-tip',
  ...['index-finger','middle-finger','ring-finger','pinky-finger'].flatMap(f=>[f+'-metacarpal',f+'-phalanx-proximal',f+'-phalanx-intermediate',f+'-phalanx-distal',f+'-tip'])];
 const gloveMat=new THREE.MeshStandardMaterial({color:0xdfe8f7,roughness:.55,metalness:.05,skinning:true});
-const shadowMat=new THREE.MeshBasicMaterial({color:0x7fa8e8,transparent:true,opacity:.35,depthWrite:false,skinning:true});
+const shadowMat=new THREE.MeshBasicMaterial({color:0x5b8fe8,transparent:true,opacity:.6,depthWrite:false,skinning:true});
 const tipMat=new THREE.MeshBasicMaterial({color:0xf2b705});const knGeo=new THREE.SphereGeometry(1,14,10);
-const gltfLoader=new THREE.GLTFLoader();
-hands.forEach(hd=>{hd.addEventListener('connected',ev=>{const side=ev.data&&ev.data.handedness;if(!ev.data||!ev.data.hand||hd.userData.model||!HAND_GLB[side])return;
-  hd.userData.model='cargando';
-  gltfLoader.load(HAND_GLB[side],gltf=>{const obj=gltf.scene.children[0];hd.add(obj);const bones=[];let mesh=null;
-    obj.traverse(o=>{if(o.isSkinnedMesh){mesh=o;o.frustumCulled=false;}});
-    JOINTS.forEach(n=>{const b=obj.getObjectByName(n);if(b)bones.push([b,n]);});
-    hd.userData.model={obj,mesh,bones};},undefined,()=>{hd.userData.model=null;});});});
-function updateHands(){hands.forEach((hd,i)=>{const J=hd.joints;if(!J||!J.wrist)return;
-  const M=hd.userData.model;
-  if(M&&M.bones){M.bones.forEach(([b,n])=>{const j=J[n];if(j&&j.visible){b.position.copy(j.position);b.quaternion.copy(j.quaternion);}});
+const gltfLoader=new THREE.GLTFLoader();const handModels={};let handErr=null,handErrShown=false;
+['left','right'].forEach(side=>gltfLoader.load(HAND_GLB[side],gltf=>{const obj=gltf.scene.children[0];let mesh=null;
+  obj.traverse(o=>{if(o.isSkinnedMesh){mesh=o;o.frustumCulled=false;}});
+  const bones=[];JOINTS.forEach(n=>{const b=obj.getObjectByName(n);if(b)bones.push([b,n]);});
+  obj.visible=false;handModels[side]={obj,mesh,bones};},undefined,er=>{handErr=String(er&&er.message||er);}));
+function updateHands(){const ses=renderer.xr.getSession();
+  if(handErr&&!handErrShown){handErrShown=true;drawInstr('No se pudo cargar el modelo de mano: '+handErr);instr.visible=true;}
+  hands.forEach((hd,i)=>{const J=hd.joints;const src=ses&&ses.inputSources&&ses.inputSources[i];
+  const side=src&&src.hand?src.handedness:null;const M=side&&handModels[side];
+  if(M&&J&&J.wrist){if(M.obj.parent!==hd)hd.add(M.obj);M.obj.visible=true;
+    M.bones.forEach(([b,n])=>{const j=J[n];if(j&&j.visible){b.position.copy(j.position);b.quaternion.copy(j.quaternion);}});
     if(M.mesh)M.mesh.material=isAR?shadowMat:gloveMat;}
+  if(!J||!J.wrist)return;
   if(!hd.userData.tip){const t=new THREE.Mesh(knGeo,tipMat);hd.add(t);hd.userData.tip=t;}
   const jt=J['index-finger-tip'],t=hd.userData.tip;t.visible=!!jt&&jt.visible;if(t.visible){t.position.copy(jt.position);t.scale.setScalar(.006);}
   const w=J.wrist.position;let s=0,n=0;TIPS.forEach(k=>{if(J[k]){s+=J[k].position.distanceTo(w);n++;}});

@@ -48,6 +48,15 @@ nav button:focus-visible{outline:3px solid #f2b705;outline-offset:2px}
 #pad{position:absolute;right:12px;bottom:12px;display:grid;grid-template-columns:repeat(3,48px);grid-template-rows:repeat(2,48px);gap:6px}
 #pad button{font:800 1.1rem system-ui,sans-serif;border:0;border-radius:10px;background:rgba(11,46,89,.82);color:#fff;cursor:pointer;touch-action:none;user-select:none}
 #pad button:active{background:#c8102e}
+/* ===== Modo visor para teléfono (no cambia nada del modo normal ni de las gafas) ===== */
+#phoneExit,#phoneDiv,#phoneHint{display:none}
+body.phonevr header,body.phonevr #tour,body.phonevr #modo,body.phonevr #xr,body.phonevr #caption,body.phonevr #pad,body.phonevr #hint{display:none!important}
+body.phonevr #stage{position:fixed!important;inset:0;z-index:50;width:100vw;height:100vh;height:100dvh;background:#000}
+body.phonevr #phoneExit{display:block;position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:60;font:600 14px system-ui,sans-serif;color:#fff;background:rgba(11,46,89,.75);border:1px solid rgba(255,255,255,.35);border-radius:999px;padding:6px 14px}
+body.phonevr.stereo #phoneDiv{display:block;position:fixed;left:50%;top:0;bottom:0;width:2px;margin-left:-1px;background:#111;z-index:55;pointer-events:none}
+body.phonevr.stereo #phoneHint{display:flex;position:fixed;inset:0;z-index:58;align-items:center;justify-content:center;text-align:center;padding:24px;background:rgba(0,0,0,.85);color:#fff;font:600 18px/1.5 system-ui,sans-serif}
+@media (orientation:landscape){body.phonevr.stereo #phoneHint{display:none}}
+#xr button.phone{border-style:solid}
 #pad .up{grid-column:2}#pad .lf{grid-column:1;grid-row:2}#pad .dn{grid-column:2;grid-row:2}#pad .rt{grid-column:3;grid-row:2}
 </style>
 </head>
@@ -3709,6 +3718,7 @@ const scene=new THREE.Scene();
 const bgColor=new THREE.Color('#dfe6ee');
 scene.background=bgColor;
 const camera=new THREE.PerspectiveCamera(65,1,0.05,100);
+let phone=null; // modo visor para teléfono (null = modo normal)
 const world=new THREE.Group(); scene.add(world);
 // Pose de la cabeza: en XR se lee la matriz de la cámara directamente (getWorldPosition la reinicia en three r128)
 function headM(){return renderer.xr.isPresenting?renderer.xr.getCamera(camera).matrixWorld:camera.matrixWorld;}
@@ -4088,7 +4098,7 @@ function go(i,instant){
   [...nav.children].forEach((b,j)=>b.setAttribute('aria-pressed',j===i));
   capT.textContent='Luigi: '+s.n;capP.textContent=s.t;drawBubble(s.n,s.t);
   moveGuide(i,instant);const sp=sayOnce(s.t);
-  if(renderer.xr.isPresenting)return sp;
+  if(renderer.xr.isPresenting||phone)return sp;
   const fromP=camera.position.clone(),fromT=controls.target.clone();
   const toP=new THREE.Vector3(...s.pos),look=new THREE.Vector3(...s.look);
   const toT=s.orbit?look:toP.clone().add(look.clone().sub(toP).normalize().multiplyScalar(.15));
@@ -4486,12 +4496,12 @@ const gate=new THREE.Group();scene.add(gate);
   const txt=new THREE.Mesh(new THREE.PlaneGeometry(.62,.62*220/1024),new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(tc),transparent:true,depthWrite:false,blending:THREE.AdditiveBlending}));
   txt.position.y=.42;txt.name='txt';gate.add(txt);
   const hc=document.createElement('canvas');hc.width=1024;hc.height=80;const hx=hc.getContext('2d');hx.textAlign='center';hx.textBaseline='middle';hx.font=`400 40px ${F}`;hx.fillStyle='rgba(190,225,255,.9)';
-  hx.fillText('Aprieta el gatillo o haz el pellizco para comenzar',512,40);
+  hx.fillText('Gatillo, pellizco, botón A o toca la pantalla para comenzar',512,40);
   const hint=new THREE.Mesh(new THREE.PlaneGeometry(.62,.62*80/1024),new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(hc),transparent:true,depthWrite:false}));hint.position.y=-.4;hint.name='hint';gate.add(hint);}
 const gateBg=new THREE.Color('#000000');
 function closeGate(){gateOpen=false;gate.visible=true;world.visible=false;gate.userData.placed=false;scene.background=renderer.xr.isPresenting&&isAR?null:gateBg;}
 function openGate(){if(gateOpen)return;gateOpen=true;gate.visible=false;world.visible=true;scene.background=renderer.xr.isPresenting&&isAR?null:bgColor;
-  unlockAudio();startReveal();if(renderer.xr.isPresenting)startAutoCalib();}
+  unlockAudio();startReveal();if(renderer.xr.isPresenting)startAutoCalib();else if(phone)startChosen();}
 function updateGate(dt){if(gateOpen)return;const t=performance.now()/1000;
   const p=new THREE.Vector3(),q=new THREE.Quaternion();headPos(p);headQuat(q);
   const f=new THREE.Vector3(0,0,-1).applyQuaternion(q);f.y=0;if(f.lengthSq()<1e-4)f.set(0,0,-1);f.normalize();
@@ -4505,6 +4515,86 @@ function updateGate(dt){if(gateOpen)return;const t=performance.now()/1000;
 renderer.domElement.addEventListener('pointerup',()=>{if(!gateOpen&&!renderer.xr.isPresenting)openGate();},true);
 document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('button');if(b&&!gateOpen&&!renderer.xr.isPresenting&&b.id!=='btnVR'&&b.id!=='btnAR')openGate();},true);
 closeGate();
+// ===== Modo visor para teléfono: pantalla dividida (visor tipo cartón) o 360 con el giroscopio, y mando Bluetooth =====
+const PH={a:0,b:0,g:0,has:false,orient:0};
+addEventListener('deviceorientation',e=>{if(e.alpha==null)return;PH.a=e.alpha*Math.PI/180;PH.b=e.beta*Math.PI/180;PH.g=e.gamma*Math.PI/180;PH.has=true;});
+const _zee=new THREE.Vector3(0,0,1),_eul=new THREE.Euler(),_q0=new THREE.Quaternion(),_q1=new THREE.Quaternion(-Math.sqrt(.5),0,0,Math.sqrt(.5)),_qy=new THREE.Quaternion(),_Y=new THREE.Vector3(0,1,0);
+function devQuat(q){const o=((screen.orientation&&screen.orientation.angle)||window.orientation||0)*Math.PI/180;
+  _eul.set(PH.b,PH.a,-PH.g,'YXZ');q.setFromEuler(_eul);q.multiply(_q1);q.multiply(_q0.setFromAxisAngle(_zee,-o));return q;}
+const yawOf=q=>{const d=new THREE.Vector3(0,0,-1).applyQuaternion(q);return Math.atan2(-d.x,-d.z);};
+const camL=new THREE.PerspectiveCamera(85,1,.05,100),camR=new THREE.PerspectiveCamera(85,1,.05,100);
+const phReticle=new THREE.Group();phReticle.position.z=-1.2;phReticle.visible=false;camera.add(phReticle);
+{const r1=new THREE.Mesh(new THREE.RingGeometry(.012,.018,32),new THREE.MeshBasicMaterial({color:0xffffff,depthTest:false,transparent:true}));r1.renderOrder=999;phReticle.add(r1);
+ const r2=new THREE.Mesh(new THREE.CircleGeometry(.011,32),new THREE.MeshBasicMaterial({color:0x5fe8ff,depthTest:false,transparent:true,opacity:.9}));r2.renderOrder=1000;r2.scale.setScalar(.001);r2.name='fill';phReticle.add(r2);}
+const phoneExit=document.createElement('button');phoneExit.id='phoneExit';phoneExit.type='button';phoneExit.textContent='✕ Salir del visor';document.body.appendChild(phoneExit);
+const phoneDiv=document.createElement('div');phoneDiv.id='phoneDiv';document.body.appendChild(phoneDiv);
+const phoneHint=document.createElement('div');phoneHint.id='phoneHint';phoneHint.textContent='Gira el teléfono en horizontal para usar el visor';document.body.appendChild(phoneHint);
+async function enterPhone(stereo){
+  try{if(window.DeviceOrientationEvent&&typeof DeviceOrientationEvent.requestPermission==='function')await DeviceOrientationEvent.requestPermission();}catch(e){}
+  try{await document.documentElement.requestFullscreen();}catch(e){}
+  try{await screen.orientation.lock('landscape');}catch(e){}
+  voiceOn=true;bVoz.setAttribute('aria-pressed','true');bVoz.textContent='🔊 Voz de Luigi activada';unlockAudio();
+  phone={stereo,yaw:0,pitch:0,man:0,aligned:false,pad:false,prev:[],dwellT:0,dwellObj:null,dwellLock:null,lastPad:0};
+  document.body.classList.add('phonevr');document.body.classList.toggle('stereo',stereo);
+  scene.add(camera); // la mira va pegada a la cámara
+  controls.enabled=false;anim=null;camera.position.set(1.0,1.6,1.35);phone.man=-Math.PI/2; // de pie junto a la puerta, mirando al fondo
+  bubble.visible=true;phReticle.visible=true;camera.fov=stereo?85:70;
+  setTimeout(resize,60);setTimeout(resize,500);closeGate();}
+function exitPhone(){if(!phone)return;phone=null;scene.remove(camera);document.body.classList.remove('phonevr','stereo');
+  try{if(document.fullscreenElement)document.exitFullscreen();}catch(e){}try{screen.orientation.unlock();}catch(e){}
+  controls.enabled=true;phReticle.visible=false;bubble.visible=false;camera.fov=65;tour.on=false;tour.wait=-1;tour.token++;spot.visible=false;stopSpeak();
+  gateOpen=true;gate.visible=false;world.visible=true;scene.background=bgColor;setTimeout(()=>{resize();go(current,true);},80);}
+phoneExit.onclick=exitPhone;
+addEventListener('keydown',e=>{if(phone&&e.code==='Escape')exitPhone();});
+// recentrar: la vista mira hacia donde apunta la estación actual
+function phoneRecenter(dir){if(!phone)return;const q=new THREE.Quaternion();
+  if(PH.has){devQuat(q);phone.yaw=(dir!=null?dir:yawOf(camera.quaternion))-yawOf(q);}else if(dir!=null)phone.man=dir;}
+function phoneJump(i){const s=stations[i];if(!s||s.orbit)return;camera.position.set(s.pos[0],1.6,s.pos[2]);
+  phoneRecenter(Math.atan2(-(s.look[0]-s.pos[0]),-(s.look[2]-s.pos[2])));tour.on=false;tour.wait=-1;tour.token++;spot.visible=false;go(i);}
+function phoneHit(){ray.setFromCamera({x:0,y:0},camera);return ray.intersectObjects(targets,false)[0]||null;}
+function phoneSelect(){if(!gateOpen){openGate();return;}const h=phoneHit();if(!panelSelect(h)){if(tour.on&&tour.wait>=0){}}phone.dwellLock=h&&h.object;phone.dwellT=0;}
+// toque en pantalla, botón del visor de cartón o clic de un mando en modo ratón: selecciona lo que está en la mira
+renderer.domElement.addEventListener('pointerup',e=>{if(!phone)return;e.stopImmediatePropagation();phoneSelect();},true);
+renderer.domElement.addEventListener('pointerdown',e=>{if(!phone)return;phone.drag=[e.clientX,e.clientY];},true);
+renderer.domElement.addEventListener('pointermove',e=>{if(!phone||!phone.drag||PH.has)return;const dx=e.clientX-phone.drag[0],dy=e.clientY-phone.drag[1];phone.drag=[e.clientX,e.clientY];
+  phone.man-=dx*.005;phone.pitch=Math.max(-1.2,Math.min(1.2,phone.pitch-dy*.005));},true);
+addEventListener('pointerup',()=>{if(phone)phone.drag=null;});
+addEventListener('keydown',e=>{if(phone&&(e.code==='Enter'||e.code==='Space'||e.code==='NumpadEnter')){e.preventDefault();phoneSelect();}});
+function updatePhone(dt){if(!phone||renderer.xr.isPresenting)return;
+  // mando (Gamepad): stick izquierdo camina, derecho gira, A/RT selecciona, X recentra, LB/RB estación anterior/siguiente, B devuelve el letrero
+  const gps=navigator.getGamepads?navigator.getGamepads():[];let mvx=0,mvy=0,rx=0,ry=0;
+  for(const gp of gps){if(!gp)continue;const ax=gp.axes,bt=gp.buttons,dz=v=>Math.abs(v)>.18?v:0;
+    mvx+=dz(ax[0]||0);mvy+=dz(ax[1]||0);rx+=dz(ax[2]||0);ry+=dz(ax[3]||0);
+    const pr=i=>bt[i]&&bt[i].pressed;const prev=phone.prev[gp.index]||[];const down=i=>pr(i)&&!prev[i];
+    if(pr(12))mvy-=1;if(pr(13))mvy+=1;if(pr(14))mvx-=1;if(pr(15))mvx+=1;
+    if(down(0)||down(7)){phoneSelect();}
+    if(down(2))phoneRecenter();
+    if(down(9)&&!gateOpen)openGate();
+    if(down(1)&&outPanel)sendHome(outPanel);
+    if(down(4)||down(5)){let i=current;do{i=(i+(down(5)?1:-1)+stations.length)%stations.length;}while(stations[i].orbit);phoneJump(i);}
+    if(bt.some(b=>b&&b.pressed)||ax.some(a=>Math.abs(a)>.3)){phone.pad=true;phone.lastPad=performance.now();}
+    phone.prev[gp.index]=bt.map(b=>b&&b.pressed);}
+  // orientación: giroscopio del teléfono (o arrastrar si no hay giroscopio)
+  if(rx)phone[PH.has?'yaw':'man']-=rx*1.9*dt;if(ry&&!PH.has)phone.pitch=Math.max(-1.2,Math.min(1.2,phone.pitch-ry*1.5*dt));
+  if(PH.has){if(!phone.aligned){phone.aligned=true;phoneRecenter(phone.man);}devQuat(camera.quaternion);_qy.setFromAxisAngle(_Y,phone.yaw);camera.quaternion.premultiply(_qy);}
+  else camera.quaternion.setFromEuler(new THREE.Euler(phone.pitch,phone.man,0,'YXZ'));
+  camera.updateMatrixWorld();
+  // caminar hacia donde se mira
+  if(mvx||mvy){const f=new THREE.Vector3(0,0,-1).applyQuaternion(camera.quaternion);f.y=0;if(f.lengthSq()<1e-4)f.set(0,0,-1);f.normalize();const r=new THREE.Vector3(-f.z,0,f.x);
+    const mv=f.multiplyScalar(-mvy).add(r.multiplyScalar(mvx));if(mv.length()>1)mv.normalize();
+    camera.position.addScaledVector(mv,1.4*dt);camera.position.x=Math.min(L-.3,Math.max(.3,camera.position.x));camera.position.z=Math.min(W-.3,Math.max(.3,camera.position.z));camera.position.y=1.6;}
+  // mira: se ilumina sobre un letrero; sin mando, mirar fijo 2 s lo selecciona (visor de cartón)
+  const h=gateOpen?phoneHit():null;const o=h&&h.object;const fill=phReticle.getObjectByName('fill');
+  phReticle.children[0].material.color.setHex(o?0x5fe8ff:0xffffff);
+  const padRecent=performance.now()-phone.lastPad<15000;
+  if(o&&o!==phone.dwellLock&&!padRecent&&phone.stereo){if(o!==phone.dwellObj){phone.dwellObj=o;phone.dwellT=0;}phone.dwellT+=dt;fill.scale.setScalar(Math.max(.001,Math.min(1,phone.dwellT/2)));
+    if(phone.dwellT>=2){phoneSelect();fill.scale.setScalar(.001);}}
+  else{phone.dwellObj=null;phone.dwellT=0;fill.scale.setScalar(.001);if(o!==phone.dwellLock)phone.dwellLock=null;}}
+function renderStereo(){const sz=renderer.getSize(new THREE.Vector2());const w=sz.x/2,h=sz.y;
+  camera.updateMatrixWorld();const r=new THREE.Vector3(1,0,0).applyQuaternion(camera.quaternion);
+  [[camL,-1,0],[camR,1,w]].forEach(([c,s,x])=>{c.fov=85;c.aspect=w/h;c.updateProjectionMatrix();c.position.copy(camera.position).addScaledVector(r,s*.032);c.quaternion.copy(camera.quaternion);c.updateMatrixWorld();
+    renderer.setViewport(x,0,w,h);renderer.setScissor(x,0,w,h);renderer.setScissorTest(true);renderer.render(scene,c);});
+  renderer.setScissorTest(false);renderer.setViewport(0,0,sz.x,sz.y);}
 // ===== WebXR (gafas Meta Quest) =====
 // Punto de inicio en las gafas: junto a la puerta, mirando hacia el fondo del aula.
 const START=new THREE.Vector3(0.9,0,1.35);
@@ -4533,6 +4623,8 @@ async function check(btn,mode,label){
   let ok=false;try{ok=navigator.xr&&await navigator.xr.isSessionSupported(mode);}catch(e){}
   btn.textContent=ok?label:label+': ábrelo desde las gafas';btn.disabled=!ok;if(ok){btn.classList.add('ok');btn.onclick=()=>startXR(mode);}
 }
+{const xr=document.getElementById('xr');const b1=document.createElement('button');b1.type='button';b1.className='phone';b1.textContent='📱 Visor para teléfono (3D)';b1.onclick=()=>enterPhone(true);
+ const b2=document.createElement('button');b2.type='button';b2.className='phone';b2.textContent='🔄 Modo 360 en el teléfono';b2.onclick=()=>enterPhone(false);xr.appendChild(b1);xr.appendChild(b2);}
 check(bVR,'immersive-vr','Entrar con gafas (VR)');check(bAR,'immersive-ar','Realidad mixta (AR)');
 
 // ===== Desplazamiento =====
@@ -4548,7 +4640,7 @@ function snapTurn(a){const hp=new THREE.Vector3();headPos(hp);hp.y=0;
   world.position.sub(hp).applyAxisAngle(new THREE.Vector3(0,1,0),a).add(hp);world.rotation.y+=a;}
 let xrFrame=null,loopErr=0;
 renderer.setAnimationLoop((time,frame)=>{xrFrame=frame||null;try{
-  const tnow=performance.now();const dt=Math.min(.05,(tnow-lastT)/1000);lastT=tnow;updateTab(dt);updateGate(dt);if(gateOpen)updateReveal(dt);
+  const tnow=performance.now();const dt=Math.min(.05,(tnow-lastT)/1000);lastT=tnow;updateTab(dt);updatePhone(dt);updateGate(dt);if(gateOpen)updateReveal(dt);
   // gafas: joystick izquierdo camina, derecho gira suave
   if(renderer.xr.isPresenting&&calib.step>=3){const ses=renderer.xr.getSession();
     if(ses)for(const src of ses.inputSources){const gp=src.gamepad;if(!gp||gp.axes.length<4)continue;const ax=gp.axes[2],ay=gp.axes[3];
@@ -4591,14 +4683,14 @@ renderer.setAnimationLoop((time,frame)=>{xrFrame=frame||null;try{
       if(h&&!c.userData.held)h.object.material.color.setHex(0xd6e6ff);});}
   if(renderer.xr.isPresenting){updateHands();if(autoCal)tryAutoCalib();}
   if(spot.visible){const k=1+Math.sin(now*4)*.08;spot.scale.set(k,k,1);}
-  if(renderer.xr.isPresenting&&tour.on&&tour.wait>=0){const hp=new THREE.Vector3();headPos(hp);world.worldToLocal(hp);
+  if((renderer.xr.isPresenting||phone)&&tour.on&&tour.wait>=0){const hp=new THREE.Vector3();headPos(hp);world.worldToLocal(hp);
     const s=stations[tour.wait];if(Math.hypot(hp.x-s.pos[0]*SX,hp.z-s.pos[2]*SZ)<0.8)arrive(tour.wait);}
   if(renderer.xr.isPresenting&&instr.visible){const xc=renderer.xr.getCamera(camera);headPos(_o);headQuat(_q);
     _d.set(0,-.15,-1.2).applyQuaternion(_q);instr.position.copy(_o).add(_d);instr.quaternion.copy(_q);
     if(calib.step<3){const p=floorHit(activeCtrl);reticle.visible=!!p;if(p)reticle.position.set(p.x,.005,p.z);}}
-  if(!renderer.xr.isPresenting)controls.update();
+  if(!renderer.xr.isPresenting&&!phone)controls.update();
   }catch(e){if(loopErr++<5){console.error('Error en el bucle:',e);if(renderer.xr.isPresenting){drawInstr('Aviso técnico: '+(e&&e.message||e));instr.visible=true;}}}
-  renderer.render(scene,camera);
+  if(phone&&phone.stereo&&!renderer.xr.isPresenting)renderStereo();else renderer.render(scene,camera);
 });
 })();
 </script>

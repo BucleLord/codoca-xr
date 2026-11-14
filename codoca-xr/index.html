@@ -52,7 +52,12 @@ nav button:focus-visible{outline:3px solid #f2b705;outline-offset:2px}
 #phoneExit,#phoneDiv,#phoneHint{display:none}
 body.phonevr header,body.phonevr #tour,body.phonevr #modo,body.phonevr #xr,body.phonevr #caption,body.phonevr #pad,body.phonevr #hint{display:none!important}
 body.phonevr #stage{position:fixed!important;inset:0;z-index:50;width:100vw;height:100vh;height:100dvh;background:#000}
-body.phonevr #phoneExit{display:block;position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:60;font:600 14px system-ui,sans-serif;color:#fff;background:rgba(11,46,89,.75);border:1px solid rgba(255,255,255,.35);border-radius:999px;padding:6px 14px}
+#phoneBar{display:none}body.phonevr #phoneBar{display:flex;gap:6px;position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:60}
+body.phonevr #phoneBar #phoneExit{display:inline-block}
+#phoneBar button{font:600 14px system-ui,sans-serif;color:#fff;background:rgba(11,46,89,.75);border:1px solid rgba(255,255,255,.35);border-radius:999px;padding:6px 12px;min-width:36px}
+body.phonevr:not(.stereo) #phoneBar .st{display:none}
+#phoneCal{display:none}body.phonevr.stereo.cal #phoneCal{display:block;position:fixed;top:48px;left:50%;transform:translateX(-50%);z-index:60;font:600 13px system-ui,sans-serif;color:#fff;background:rgba(0,0,0,.6);padding:4px 10px;border-radius:8px;white-space:nowrap}
+body.phonevr #phoneExitOld{display:block;position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:60;font:600 14px system-ui,sans-serif;color:#fff;background:rgba(11,46,89,.75);border:1px solid rgba(255,255,255,.35);border-radius:999px;padding:6px 14px}
 body.phonevr.stereo #phoneDiv{display:block;position:fixed;left:50%;top:0;bottom:0;width:2px;margin-left:-1px;background:#111;z-index:55;pointer-events:none}
 body.phonevr.stereo #phoneHint{display:flex;position:fixed;inset:0;z-index:58;align-items:center;justify-content:center;text-align:center;padding:24px;background:rgba(0,0,0,.85);color:#fff;font:600 18px/1.5 system-ui,sans-serif}
 @media (orientation:landscape){body.phonevr.stereo #phoneHint{display:none}}
@@ -4057,7 +4062,7 @@ function unlockAudio(){try{if(typeof primeMusic==='function')primeMusic();}catch
 const readTime=t=>Math.max(2500,t.split(' ').length*380);
 const wait=ms=>new Promise(r=>setTimeout(r,ms));
 function speak(text){ // un solo canal de voz: nunca se encima una frase sobre otra
-  if(!voiceOn)return wait(readTime(text));
+  if(!voiceOn||(()=>{try{return !gateOpen;}catch(e){return false;}})())return wait(readTime(text));
   if(tts&&!(renderer.xr&&renderer.xr.isPresenting))return tts.speak(text,{language:'es'}).catch(()=>wait(readTime(text)));
   if(LUIGI_AUD[text]){if(curText===text&&curP&&!luigiAu.paused)return curP;return speakRec(text);}
   if(renderer.xr&&renderer.xr.isPresenting)return wait(readTime(text)); // en las gafas no se usa la voz del sistema
@@ -4476,7 +4481,7 @@ function startWalkTour(){tour.on=true;tour.cur=-1;tour.token++;moveGuide(0,true)
 const FREE_INTRO='¡Hola! Soy Luigi. Recorre la oficina a tu ritmo: apunta a cualquier letrero de las paredes y tómalo, o toca los muebles del centro para desplegar su información. Yo te lo explico.';
 function startFree(){tour.on=false;tour.wait=-1;tour.token++;spot.visible=false;guideTo([2.0,1.2],true);explainText('Exploración libre',FREE_INTRO,null);}
 let freeMode=false;
-function startChosen(){const w=Math.max(0,(10.2-revT)*1000);setTimeout(()=>{if(freeMode)startFree();else startWalkTour();},w);}
+let startTok=0;function startChosen(){const my=++startTok;const w=Math.max(0,(10.2-revT)*1000);setTimeout(()=>{if(my!==startTok||!gateOpen||!(renderer.xr.isPresenting||phone))return;if(freeMode)startFree();else startWalkTour();},w);}
 const bSug=document.getElementById('btnSug'),bLib=document.getElementById('btnLib');
 function setMode(free){freeMode=free;bSug.setAttribute('aria-pressed',!free);bLib.setAttribute('aria-pressed',free);}
 bSug.onclick=()=>setMode(false);bLib.onclick=()=>setMode(true);
@@ -4499,7 +4504,7 @@ const gate=new THREE.Group();scene.add(gate);
   hx.fillText('Gatillo, pellizco, botón A o toca la pantalla para comenzar',512,40);
   const hint=new THREE.Mesh(new THREE.PlaneGeometry(.62,.62*80/1024),new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(hc),transparent:true,depthWrite:false}));hint.position.y=-.4;hint.name='hint';gate.add(hint);}
 const gateBg=new THREE.Color('#000000');
-function closeGate(){gateOpen=false;gate.visible=true;world.visible=false;gate.userData.placed=false;scene.background=renderer.xr.isPresenting&&isAR?null:gateBg;}
+function closeGate(){gateOpen=false;if(typeof startTok!=='undefined')startTok++;try{stopSpeak();}catch(e){}if(typeof tour!=='undefined'){tour.on=false;tour.wait=-1;tour.token++;}gate.visible=true;world.visible=false;gate.userData.placed=false;scene.background=renderer.xr.isPresenting&&isAR?null:gateBg;}
 function openGate(){if(gateOpen)return;gateOpen=true;gate.visible=false;world.visible=true;scene.background=renderer.xr.isPresenting&&isAR?null:bgColor;
   unlockAudio();startReveal();if(renderer.xr.isPresenting)startAutoCalib();else if(phone)startChosen();}
 function updateGate(dt){if(gateOpen)return;const t=performance.now()/1000;
@@ -4513,7 +4518,7 @@ function updateGate(dt){if(gateOpen)return;const t=performance.now()/1000;
   gate.getObjectByName('glow').material.opacity=.7+.3*Math.sin(t*2);gate.getObjectByName('ring').rotation.z+=dt*.6;
   gate.getObjectByName('ring').scale.setScalar(1+.03*Math.sin(t*2));}
 renderer.domElement.addEventListener('pointerup',()=>{if(!gateOpen&&!renderer.xr.isPresenting)openGate();},true);
-document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('button');if(b&&!gateOpen&&!renderer.xr.isPresenting&&b.id!=='btnVR'&&b.id!=='btnAR')openGate();},true);
+document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('button');if(b&&!gateOpen&&!renderer.xr.isPresenting&&b.id!=='btnVR'&&b.id!=='btnAR'&&!b.classList.contains('phone')&&!b.closest('#phoneBar'))openGate();},true);
 closeGate();
 // ===== Modo visor para teléfono: pantalla dividida (visor tipo cartón) o 360 con el giroscopio, y mando Bluetooth =====
 const PH={a:0,b:0,g:0,has:false,orient:0};
@@ -4526,7 +4531,15 @@ const camL=new THREE.PerspectiveCamera(85,1,.05,100),camR=new THREE.PerspectiveC
 const phReticle=new THREE.Group();phReticle.position.z=-1.2;phReticle.visible=false;camera.add(phReticle);
 {const r1=new THREE.Mesh(new THREE.RingGeometry(.012,.018,32),new THREE.MeshBasicMaterial({color:0xffffff,depthTest:false,transparent:true}));r1.renderOrder=999;phReticle.add(r1);
  const r2=new THREE.Mesh(new THREE.CircleGeometry(.011,32),new THREE.MeshBasicMaterial({color:0x5fe8ff,depthTest:false,transparent:true,opacity:.9}));r2.renderOrder=1000;r2.scale.setScalar(.001);r2.name='fill';phReticle.add(r2);}
-const phoneExit=document.createElement('button');phoneExit.id='phoneExit';phoneExit.type='button';phoneExit.textContent='✕ Salir del visor';document.body.appendChild(phoneExit);
+const phoneBar=document.createElement('div');phoneBar.id='phoneBar';phoneBar.innerHTML='<button type="button" class="st" id="sepMinus" aria-label="Juntar imágenes">−</button><button type="button" class="st" id="sepPlus" aria-label="Separar imágenes">+</button><button type="button" id="phRecenter">⟳ Centrar</button><button type="button" id="phoneExit">✕ Salir</button>';document.body.appendChild(phoneBar);
+const phoneCal=document.createElement('div');phoneCal.id='phoneCal';document.body.appendChild(phoneCal);
+const phoneExit=document.getElementById('phoneExit');
+let SEP=(()=>{try{const v=parseFloat(localStorage.getItem('codocaSep'));if(v>100&&v<1400)return v;}catch(e){}return 0;})();
+function sepDefault(){const w=innerWidth;return Math.min(w/2,Math.max(260,Math.round(63*(window.devicePixelRatio>2.5?6.5:6.0))));}
+function showSep(){if(!SEP)SEP=sepDefault();phoneCal.textContent='Separación '+Math.round(SEP)+' · ajusta con − / + (o ◀ ▶ del mando) hasta ver un solo escudo';document.body.classList.add('cal');clearTimeout(showSep.t);showSep.t=setTimeout(()=>{if(gateOpen)document.body.classList.remove('cal');},4000);}
+function nudgeSep(d){if(!SEP)SEP=sepDefault();SEP=Math.max(160,Math.min(innerWidth*.6,SEP+d));try{localStorage.setItem('codocaSep',String(SEP));}catch(e){}showSep();}
+document.getElementById('sepMinus').onclick=e=>{e.stopPropagation();nudgeSep(-8);};document.getElementById('sepPlus').onclick=e=>{e.stopPropagation();nudgeSep(8);};
+document.getElementById('phRecenter').onclick=e=>{e.stopPropagation();phoneRecenter();};
 const phoneDiv=document.createElement('div');phoneDiv.id='phoneDiv';document.body.appendChild(phoneDiv);
 const phoneHint=document.createElement('div');phoneHint.id='phoneHint';phoneHint.textContent='Gira el teléfono en horizontal para usar el visor';document.body.appendChild(phoneHint);
 async function enterPhone(stereo){
@@ -4539,8 +4552,8 @@ async function enterPhone(stereo){
   scene.add(camera); // la mira va pegada a la cámara
   controls.enabled=false;anim=null;camera.position.set(1.0,1.6,1.35);phone.man=-Math.PI/2; // de pie junto a la puerta, mirando al fondo
   bubble.visible=true;phReticle.visible=true;camera.fov=stereo?85:70;
-  setTimeout(resize,60);setTimeout(resize,500);closeGate();}
-function exitPhone(){if(!phone)return;phone=null;scene.remove(camera);document.body.classList.remove('phonevr','stereo');
+  setTimeout(resize,60);setTimeout(resize,500);closeGate();if(stereo){setTimeout(()=>{if(!SEP)SEP=sepDefault();showSep();document.body.classList.add('cal');},600);}}
+function exitPhone(){if(!phone)return;phone=null;document.body.classList.remove('cal');scene.remove(camera);document.body.classList.remove('phonevr','stereo');
   try{if(document.fullscreenElement)document.exitFullscreen();}catch(e){}try{screen.orientation.unlock();}catch(e){}
   controls.enabled=true;phReticle.visible=false;bubble.visible=false;camera.fov=65;tour.on=false;tour.wait=-1;tour.token++;spot.visible=false;stopSpeak();
   gateOpen=true;gate.visible=false;world.visible=true;scene.background=bgColor;setTimeout(()=>{resize();go(current,true);},80);}
@@ -4566,8 +4579,9 @@ function updatePhone(dt){if(!phone||renderer.xr.isPresenting)return;
   for(const gp of gps){if(!gp)continue;const ax=gp.axes,bt=gp.buttons,dz=v=>Math.abs(v)>.18?v:0;
     mvx+=dz(ax[0]||0);mvy+=dz(ax[1]||0);rx+=dz(ax[2]||0);ry+=dz(ax[3]||0);
     const pr=i=>bt[i]&&bt[i].pressed;const prev=phone.prev[gp.index]||[];const down=i=>pr(i)&&!prev[i];
-    if(pr(12))mvy-=1;if(pr(13))mvy+=1;if(pr(14))mvx-=1;if(pr(15))mvx+=1;
-    if(down(0)||down(7)){phoneSelect();}
+    if(!gateOpen&&phone.stereo){if(down(14))nudgeSep(-8);if(down(15))nudgeSep(8);}
+    else{if(pr(12))mvy-=1;if(pr(13))mvy+=1;if(pr(14))mvx-=1;if(pr(15))mvx+=1;}
+    if(down(0)||down(7)){phoneSelect();if(gateOpen)document.body.classList.remove('cal');}
     if(down(2))phoneRecenter();
     if(down(9)&&!gateOpen)openGate();
     if(down(1)&&outPanel)sendHome(outPanel);
@@ -4590,9 +4604,11 @@ function updatePhone(dt){if(!phone||renderer.xr.isPresenting)return;
   if(o&&o!==phone.dwellLock&&!padRecent&&phone.stereo){if(o!==phone.dwellObj){phone.dwellObj=o;phone.dwellT=0;}phone.dwellT+=dt;fill.scale.setScalar(Math.max(.001,Math.min(1,phone.dwellT/2)));
     if(phone.dwellT>=2){phoneSelect();fill.scale.setScalar(.001);}}
   else{phone.dwellObj=null;phone.dwellT=0;fill.scale.setScalar(.001);if(o!==phone.dwellLock)phone.dwellLock=null;}}
-function renderStereo(){const sz=renderer.getSize(new THREE.Vector2());const w=sz.x/2,h=sz.y;
+function renderStereo(){const sz=renderer.getSize(new THREE.Vector2());const cssW=renderer.domElement.clientWidth||sz.x;const k=sz.x/cssW;
+  if(!SEP)SEP=sepDefault();const sep=Math.min(sz.x/2,SEP*k);const w=sep,h=sz.y;const cx=sz.x/2;
+  renderer.setScissorTest(false);renderer.setViewport(0,0,sz.x,sz.y);renderer.setClearColor(0x000000,1);renderer.clear();
   camera.updateMatrixWorld();const r=new THREE.Vector3(1,0,0).applyQuaternion(camera.quaternion);
-  [[camL,-1,0],[camR,1,w]].forEach(([c,s,x])=>{c.fov=85;c.aspect=w/h;c.updateProjectionMatrix();c.position.copy(camera.position).addScaledVector(r,s*.032);c.quaternion.copy(camera.quaternion);c.updateMatrixWorld();
+  [[camL,-1,cx-sep],[camR,1,cx]].forEach(([c,s,x])=>{c.fov=85;c.aspect=w/h;c.updateProjectionMatrix();c.position.copy(camera.position).addScaledVector(r,s*.031);c.quaternion.copy(camera.quaternion);c.updateMatrixWorld();
     renderer.setViewport(x,0,w,h);renderer.setScissor(x,0,w,h);renderer.setScissorTest(true);renderer.render(scene,c);});
   renderer.setScissorTest(false);renderer.setViewport(0,0,sz.x,sz.y);}
 // ===== WebXR (gafas Meta Quest) =====

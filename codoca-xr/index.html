@@ -4444,6 +4444,88 @@ function updateReveal(dt){revT+=dt;const r=revT;
       u.mesh.scale.y=Math.max(.001,s);u.mesh.position.y=u.y0+(u.up?-1:1)*.575*(1-s);}
     else if(e.kind==='halo')e.m.opacity=e.base*f*(f>=1?.82+.18*Math.sin(r*1.4+i):1);
     else e.m.opacity=e.base*f;});}
+// ===== PRUEBA: proyectores en la pared — cada letrero sale proyectado desde un lente circular de aluminio =====
+const PROJ=[];
+{
+  // aluminio cepillado circular (procedural) y lente de cristal
+  const bc=document.createElement('canvas');bc.width=bc.height=256;const bx=bc.getContext('2d');
+  const bg=bx.createRadialGradient(128,128,10,128,128,128);bg.addColorStop(0,'#d9dde1');bg.addColorStop(1,'#aeb4ba');bx.fillStyle=bg;bx.fillRect(0,0,256,256);
+  for(let r=8;r<128;r+=1.3){bx.strokeStyle=`rgba(${Math.random()<.5?255:90},${Math.random()<.5?255:95},${Math.random()<.5?255:100},${.05+Math.random()*.08})`;bx.lineWidth=.8;bx.beginPath();bx.arc(128,128,r,0,7);bx.stroke();}
+  const brushed=new THREE.CanvasTexture(bc);brushed.encoding=THREE.sRGBEncoding;
+  const mAlu=new THREE.MeshStandardMaterial({map:brushed,color:0xffffff,metalness:.95,roughness:.32,envMapIntensity:1.1});
+  const mAluSide=new THREE.MeshStandardMaterial({color:0xb9bfc5,metalness:.95,roughness:.4,envMapIntensity:1});
+  const lc=document.createElement('canvas');lc.width=lc.height=256;const lx=lc.getContext('2d');
+  const lg=lx.createRadialGradient(110,105,4,128,128,128);lg.addColorStop(0,'#bff4ff');lg.addColorStop(.18,'#3fb5e6');lg.addColorStop(.55,'#0d3a63');lg.addColorStop(1,'#04101e');lx.fillStyle=lg;lx.fillRect(0,0,256,256);
+  lx.fillStyle='rgba(255,255,255,.55)';lx.beginPath();lx.ellipse(96,84,26,12,-.6,0,7);lx.fill(); // reflejo del cristal
+  const lensTex=new THREE.CanvasTexture(lc);lensTex.encoding=THREE.sRGBEncoding;
+  // degradado radial para la luz en la pared
+  const gc=document.createElement('canvas');gc.width=gc.height=256;const gx=gc.getContext('2d');const gg=gx.createRadialGradient(128,128,6,128,128,128);
+  gg.addColorStop(0,'rgba(140,225,255,.9)');gg.addColorStop(.35,'rgba(90,190,255,.35)');gg.addColorStop(1,'rgba(60,150,255,0)');gx.fillStyle=gg;gx.fillRect(0,0,256,256);
+  const glowTex=new THREE.CanvasTexture(gc);
+  const beamV=`attribute float a;varying float vA;void main(){vA=a;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`;
+  const beamF=`uniform float uO;uniform float uT;varying float vA;void main(){float k=uO*(.55*(1.-vA)+.12)*(.85+.15*sin(uT*3.+vA*12.));gl_FragColor=vec4(.45,.85,1.,k*.5);}`;
+  panels.filter(p=>p.userData.title).forEach((p,i)=>{
+    const n=new THREE.Vector3(0,0,1).applyQuaternion(p.quaternion);
+    // quitar la subida desde el piso y el neón anterior de este letrero
+    REV.forEach(e=>{if(e.kind==='rise'&&e.objs&&e.objs.includes(p)){e.objs.forEach(o=>{if(o!==p)o.visible=false;});e.objs=[];}});
+    {const T=p.userData.title;if(T==='Marco legal')p.position.z-=.18;else if(T==='Objetivos')p.position.x-=.14;else if(T==='Nuestros valores')p.position.z-=.14;else if(T==='Contacto')p.position.z-=.08;else if(T==='¿Qué es el CODOCA?')p.position.x+=.06;} // separar de las esquinas
+    const wall=p.position.clone().addScaledVector(n,-.08);          // punto de la pared detrás del letrero
+    const home=wall.clone().addScaledVector(n,.16);p.position.copy(home); // el letrero queda flotando 16 cm delante de la pared
+    const q=p.quaternion.clone();
+    const g=new THREE.Group();g.position.copy(wall);g.quaternion.copy(q);world.add(g);
+    const R=Math.min(.16,Math.max(.09,Math.min(p.userData.w,p.userData.h)*.13));
+    const body=new THREE.Group();g.add(body);
+    const cyl=new THREE.Mesh(new THREE.CylinderGeometry(R,R*1.04,.05,48,1,false),[mAluSide,mAlu,mAluSide]);cyl.rotation.x=Math.PI/2;cyl.position.z=.025;body.add(cyl);
+    const bez=new THREE.Mesh(new THREE.TorusGeometry(R*.72,R*.07,12,48),mAlu);bez.position.z=.052;body.add(bez);
+    const lensM=new THREE.MeshStandardMaterial({map:lensTex,color:0xffffff,metalness:.1,roughness:.05,envMapIntensity:1.6,emissive:0x2bb8ff,emissiveIntensity:0,emissiveMap:lensTex});
+    const lens=new THREE.Mesh(new THREE.SphereGeometry(R*.66,32,16,0,Math.PI*2,0,Math.PI/2),lensM);lens.rotation.x=Math.PI/2;lens.scale.y=.35;lens.position.z=.05;body.add(lens);
+    // luz suave en la pared
+    const glowM=new THREE.MeshBasicMaterial({map:glowTex,transparent:true,opacity:0,depthWrite:false,blending:THREE.AdditiveBlending});
+    const glow=new THREE.Mesh(new THREE.PlaneGeometry(Math.max(p.userData.w,p.userData.h)*1.5,Math.max(p.userData.w,p.userData.h)*1.5),glowM);glow.position.z=.028;g.add(glow);
+    // haz de proyección: del lente a las cuatro esquinas del letrero
+    const w2=p.userData.w/2,h2=p.userData.h/2,r0=R*.25,zL=.07,zP=.16;
+    const P0=[[-r0,-r0],[r0,-r0],[r0,r0],[-r0,r0]],P1=[[-w2,-h2],[w2,-h2],[w2,h2],[-w2,h2]];const pos=[],aa=[];
+    for(let k=0;k<4;k++){const a=P0[k],b=P0[(k+1)%4],c=P1[(k+1)%4],d=P1[k];
+      pos.push(a[0],a[1],zL,b[0],b[1],zL,c[0],c[1],zP, a[0],a[1],zL,c[0],c[1],zP,d[0],d[1],zP);aa.push(0,0,1,0,1,1);}
+    const bgm2=new THREE.BufferGeometry();bgm2.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));bgm2.setAttribute('a',new THREE.Float32BufferAttribute(aa,1));
+    const beamM=new THREE.ShaderMaterial({uniforms:{uO:{value:0},uT:{value:0}},vertexShader:beamV,fragmentShader:beamF,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide});
+    const beam=new THREE.Mesh(bgm2,beamM);g.add(beam);
+    body.scale.set(1,1,.001);p.scale.setScalar(.001);p.position.copy(wall).addScaledVector(n,.07);
+    const isML=p.userData.title==='Marco legal';const HU={uMat:{value:0},uShow:{value:0},uTime:{value:0}};
+    const face=p.children[0],back=p.children[1];if(!isML){face.material.transparent=true;holoize(face.material,HU);}
+    if(back&&back.material){back.material=back.material.clone();back.material.transparent=true;back.material.opacity=0;}
+    PROJ.push({p,g,body,lensM,glowM,beamM,beam,home,wall,n,d:2.4+i*.32,done:false,ph:i*.7,ml:isML,HU,face,back});
+  });
+}
+// Marco legal: las líneas azules ondulan suave, el borde tiene un destello que lo recorre
+{const pm=panels.find(p=>p.userData.title==='Marco legal');if(pm){const mt=pm.children[0].material;const U={uT:{value:0}};pm.userData.hudU=U;
+  mt.onBeforeCompile=sh=>{sh.uniforms.uT=U.uT;sh.fragmentShader='uniform float uT;\n'+sh.fragmentShader.replace('#include <map_fragment>',`#include <map_fragment>
+    {vec3 c=diffuseColor.rgb;float blue=smoothstep(.08,.25,c.b-max(c.r,c.g)*.8)*step(.18,c.b)*step(.5,diffuseColor.a);
+     float wv=sin(vUv.y*70.+sin(vUv.x*5.+uT*.8)*1.8-uT*1.4);float line=smoothstep(.82,1.,wv);
+     float band=exp(-pow((vUv.x*.7+vUv.y*.5-mod(uT*.12,2.4)+.4)*5.,2.));
+     diffuseColor.rgb+=vec3(.2,.55,1.)*(line*.16+band*.14)*blue;
+     float ez=1.-smoothstep(.03,.11,min(min(vUv.x,1.-vUv.x),min(vUv.y,1.-vUv.y)));
+     float ang=atan(vUv.y-.5,vUv.x-.5);float dd=mod(ang-uT*.9+3.14159,6.28318)-3.14159;float gl=exp(-dd*dd*10.);
+     float lum=max(c.r,max(c.g,c.b));diffuseColor.rgb+=vec3(.7,.95,1.)*gl*ez*smoothstep(.35,.9,lum)*.9*diffuseColor.a;}`);};
+  mt.needsUpdate=true;}}
+function updateProj(dt){const t=performance.now()/1000;const ml=panels.find(p=>p.userData.title==='Marco legal');if(ml&&ml.userData.hudU)ml.userData.hudU.uT.value=t;
+  const r=gateOpen?revT:0;
+  PROJ.forEach(o=>{const k=Math.max(0,Math.min(1,(r-o.d)/3.4));const sm=x=>x*x*x*(x*(x*6-15)+10);
+    const s1=sm(Math.min(1,k/.25)),s2=sm(Math.max(0,Math.min(1,(k-.25)/.45))),s3=sm(Math.max(0,Math.min(1,(k-.68)/.32)));
+    // holograma proyectado que se vuelve sólido de abajo hacia arriba
+    o.HU.uTime.value=t;o.HU.uShow.value=s2;o.HU.uMat.value=k>=1?1.01:s3;
+    if(o.ml){o.face.material.opacity=s2;o.face.material.transparent=true;}
+    if(o.back)o.back.material.opacity=s3;
+    o.body.scale.set(1,1,Math.max(.001,s1));
+    const pulse=.85+.15*Math.sin(t*1.6+o.ph);
+    o.lensM.emissiveIntensity=(.15+.75*s1)*pulse*(k>0?1:0);
+    o.glowM.opacity=(o.ml?.6:.42)*s2*pulse;
+    o.beamM.uniforms.uO.value=Math.min(1,s1*1.4)*(k<.7?1.6:1.6-1.0*s3)*(k>.25||s1>.5?1:0);o.beamM.uniforms.uT.value=t;
+    const held=!!o.p.userData.home||o.p.parent!==world;
+    o.beam.visible=!held;
+    if(!held&&(k<1||!o.done)){o.p.scale.setScalar(Math.max(.001,s2));o.p.position.copy(o.wall).addScaledVector(o.n,.07+.09*s2);o.p.visible=k>.25;}
+    else o.p.visible=true;
+    o.done=k>=1;});}
 // ===== Letreros desplegables: se traen al frente, se agarran y se devuelven =====
 const faces=panels.map(g=>{g.children[0].userData.panel=g;return g.children[0];});
 const targets=[...faces,...labels];
@@ -4758,7 +4840,7 @@ function snapTurn(a){const hp=new THREE.Vector3();headPos(hp);hp.y=0;
   world.position.sub(hp).applyAxisAngle(new THREE.Vector3(0,1,0),a).add(hp);world.rotation.y+=a;}
 let xrFrame=null,loopErr=0;
 renderer.setAnimationLoop((time,frame)=>{xrFrame=frame||null;try{
-  const tnow=performance.now();const dt=Math.min(.05,(tnow-lastT)/1000);lastT=tnow;updateTab(dt);updatePhone(dt);updateGate(dt);if(gateOpen)updateReveal(dt);
+  const tnow=performance.now();const dt=Math.min(.05,(tnow-lastT)/1000);lastT=tnow;updateTab(dt);updateProj(dt);updatePhone(dt);updateGate(dt);if(gateOpen)updateReveal(dt);
   // gafas: joystick izquierdo camina, derecho gira suave
   if(renderer.xr.isPresenting&&calib.step>=3){const ses=renderer.xr.getSession();
     if(ses)for(const src of ses.inputSources){const gp=src.gamepad;if(!gp||gp.axes.length<4)continue;const ax=gp.axes[2],ay=gp.axes[3];

@@ -55,6 +55,12 @@ body.phonevr #stage{position:fixed!important;inset:0;z-index:50;width:100vw;heig
 #phoneBar{display:none}body.phonevr #phoneBar{display:flex;gap:6px;position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:60}
 body.phonevr #phoneBar #phoneExit{display:inline-block}
 #phoneBar button{font:600 14px system-ui,sans-serif;color:#fff;background:rgba(11,46,89,.75);border:1px solid rgba(255,255,255,.35);border-radius:999px;padding:6px 12px;min-width:36px}
+#phJoy{display:none}body.phonevr:not(.stereo) #phJoy{display:block;position:fixed;left:22px;bottom:22px;width:132px;height:132px;border-radius:50%;z-index:60;touch-action:none;
+  background:radial-gradient(circle,rgba(11,46,89,.35),rgba(11,46,89,.6));border:2px solid rgba(255,255,255,.45);box-shadow:0 4px 18px rgba(0,0,0,.35)}
+#phJoy .knob{position:absolute;left:50%;top:50%;width:58px;height:58px;margin:-29px 0 0 -29px;border-radius:50%;background:rgba(242,183,5,.9);border:2px solid #fff;box-shadow:0 2px 10px rgba(0,0,0,.4)}
+#phJoy .lbl{position:absolute;left:0;right:0;top:-22px;text-align:center;font:600 12px system-ui,sans-serif;color:#fff;text-shadow:0 1px 3px #000}
+#phTurn{display:none}body.phonevr:not(.stereo) #phTurn{display:flex;gap:10px;position:fixed;right:22px;bottom:30px;z-index:60}
+#phTurn button{width:58px;height:58px;border-radius:50%;font:800 22px system-ui;color:#fff;background:rgba(11,46,89,.7);border:2px solid rgba(255,255,255,.45);touch-action:none}
 body.phonevr:not(.stereo) #phoneBar .st{display:none}
 #phoneCal{display:none}body.phonevr.stereo.cal #phoneCal{display:block;position:fixed;top:48px;left:50%;transform:translateX(-50%);z-index:60;font:600 13px system-ui,sans-serif;color:#fff;background:rgba(0,0,0,.6);padding:4px 10px;border-radius:8px;white-space:nowrap}
 body.phonevr #phoneExitOld{display:block;position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:60;font:600 14px system-ui,sans-serif;color:#fff;background:rgba(11,46,89,.75);border:1px solid rgba(255,255,255,.35);border-radius:999px;padding:6px 14px}
@@ -4889,6 +4895,17 @@ const phReticle=new THREE.Group();phReticle.position.z=-1.2;phReticle.visible=fa
 {const r1=new THREE.Mesh(new THREE.RingGeometry(.012,.018,32),new THREE.MeshBasicMaterial({color:0xffffff,depthTest:false,transparent:true}));r1.renderOrder=999;phReticle.add(r1);
  const r2=new THREE.Mesh(new THREE.CircleGeometry(.011,32),new THREE.MeshBasicMaterial({color:0x5fe8ff,depthTest:false,transparent:true,opacity:.9}));r2.renderOrder=1000;r2.scale.setScalar(.001);r2.name='fill';phReticle.add(r2);}
 const phoneBar=document.createElement('div');phoneBar.id='phoneBar';phoneBar.innerHTML='<button type="button" class="st" id="sepMinus" aria-label="Juntar imágenes">−</button><button type="button" class="st" id="sepPlus" aria-label="Separar imágenes">+</button><button type="button" id="phRecenter">⟳ Centrar</button><button type="button" id="phoneExit">✕ Salir</button>';document.body.appendChild(phoneBar);
+const phJoy=document.createElement('div');phJoy.id='phJoy';phJoy.innerHTML='<div class="lbl">Caminar</div><div class="knob"></div>';document.body.appendChild(phJoy);
+const phTurn=document.createElement('div');phTurn.id='phTurn';phTurn.innerHTML='<button type="button" data-t="1" aria-label="Girar a la izquierda">⟲</button><button type="button" data-t="-1" aria-label="Girar a la derecha">⟳</button>';document.body.appendChild(phTurn);
+const JOY={x:0,y:0,id:null,turn:0};
+{const knob=phJoy.querySelector('.knob');const R=48;
+ const mv=e=>{const r=phJoy.getBoundingClientRect();let dx=e.clientX-(r.left+r.width/2),dy=e.clientY-(r.top+r.height/2);const d=Math.hypot(dx,dy);if(d>R){dx*=R/d;dy*=R/d;}
+   knob.style.transform=`translate(${dx}px,${dy}px)`;JOY.x=dx/R;JOY.y=dy/R;};
+ phJoy.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();JOY.id=e.pointerId;phJoy.setPointerCapture(e.pointerId);mv(e);});
+ phJoy.addEventListener('pointermove',e=>{if(e.pointerId===JOY.id){e.preventDefault();mv(e);}});
+ const up=e=>{if(e.pointerId!==JOY.id)return;JOY.id=null;JOY.x=JOY.y=0;knob.style.transform='';};phJoy.addEventListener('pointerup',up);phJoy.addEventListener('pointercancel',up);
+ phTurn.querySelectorAll('button').forEach(b=>{const t=+b.dataset.t;b.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();JOY.turn=t;});
+   ['pointerup','pointerleave','pointercancel'].forEach(ev=>b.addEventListener(ev,()=>{JOY.turn=0;}));});}
 const phoneCal=document.createElement('div');phoneCal.id='phoneCal';document.body.appendChild(phoneCal);
 const phoneExit=document.getElementById('phoneExit');
 let SEP=(()=>{try{const v=parseFloat(localStorage.getItem('codocaSep'));if(v>100&&v<1400)return v;}catch(e){}return 0;})();
@@ -4924,11 +4941,11 @@ function phoneJump(i){const s=stations[i];if(!s||s.orbit)return;camera.position.
 function phoneHit(){ray.setFromCamera({x:0,y:0},camera);return ray.intersectObjects(targets,false)[0]||null;}
 function phoneSelect(){if(!gateOpen){openGate();return;}const h=phoneHit();if(inStart&&startBtn.visible){startGuided();return;}if(!panelSelect(h)){if(tour.on&&tour.wait>=0){}}phone.dwellLock=h&&h.object;phone.dwellT=0;}
 // toque en pantalla, botón del visor de cartón o clic de un mando en modo ratón: selecciona lo que está en la mira
-renderer.domElement.addEventListener('pointerup',e=>{if(!phone)return;e.stopImmediatePropagation();phoneSelect();},true);
-renderer.domElement.addEventListener('pointerdown',e=>{if(!phone)return;phone.drag=[e.clientX,e.clientY];},true);
+renderer.domElement.addEventListener('pointerup',e=>{if(!phone)return;e.stopImmediatePropagation();const held=performance.now()-(phone.downT||0);phone.downT=0;if(held<350)phoneSelect();},true);
+renderer.domElement.addEventListener('pointerdown',e=>{if(!phone)return;phone.drag=[e.clientX,e.clientY];phone.downT=performance.now();phone.dragged=false;},true);
 renderer.domElement.addEventListener('pointermove',e=>{if(!phone||!phone.drag||PH.has)return;const dx=e.clientX-phone.drag[0],dy=e.clientY-phone.drag[1];phone.drag=[e.clientX,e.clientY];
   phone.man-=dx*.005;phone.pitch=Math.max(-1.2,Math.min(1.2,phone.pitch-dy*.005));},true);
-addEventListener('pointerup',()=>{if(phone)phone.drag=null;});
+addEventListener('pointerup',()=>{if(phone){phone.drag=null;phone.downT=0;}});
 addEventListener('keydown',e=>{if(phone&&(e.code==='Enter'||e.code==='Space'||e.code==='NumpadEnter')){e.preventDefault();phoneSelect();}});
 function updatePhone(dt){if(!phone||renderer.xr.isPresenting)return;
   // mando (Gamepad): stick izquierdo camina, derecho gira, A/RT selecciona, X recentra, LB/RB estación anterior/siguiente, B devuelve el letrero
@@ -4946,6 +4963,9 @@ function updatePhone(dt){if(!phone||renderer.xr.isPresenting)return;
     if(down(4)||down(5)){let i=current;do{i=(i+(down(5)?1:-1)+stations.length)%stations.length;}while(stations[i].orbit);phoneJump(i);}
     if(bt.some(b=>b&&b.pressed)||ax.some(a=>Math.abs(a)>.3)){phone.pad=true;phone.lastPad=performance.now();}
     phone.prev[gp.index]=bt.map(b=>b&&b.pressed);}
+  // toque: joystick en pantalla (modo 360) o mantener presionado para avanzar (visor 3D)
+  mvx+=JOY.x;mvy+=JOY.y;if(JOY.turn)rx-=JOY.turn*.8;
+  if(phone.downT&&gateOpen&&performance.now()-phone.downT>350&&(phone.stereo||PH.has))mvy-=1;
   // orientación: giroscopio del teléfono (o arrastrar si no hay giroscopio)
   if(rx)phone[PH.has?'yaw':'man']-=rx*1.9*dt;if(ry&&!PH.has)phone.pitch=Math.max(-1.2,Math.min(1.2,phone.pitch-ry*1.5*dt));
   if(PH.has){if(!phone.aligned){phone.aligned=true;phoneRecenter(phone.man);}devQuat(camera.quaternion);_qy.setFromAxisAngle(_Y,phone.yaw);camera.quaternion.premultiply(_qy);}

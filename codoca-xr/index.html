@@ -68,6 +68,21 @@ body.phonevr.stereo #phoneDiv{display:block;position:fixed;left:50%;top:0;bottom
 body.phonevr.stereo #phoneHint{display:flex;position:fixed;inset:0;z-index:58;align-items:center;justify-content:center;text-align:center;padding:24px;background:rgba(0,0,0,.85);color:#fff;font:600 18px/1.5 system-ui,sans-serif}
 @media (orientation:landscape){body.phonevr.stereo #phoneHint{display:none}}
 #xr button.phone{border-style:solid}
+#statsBtn{border-style:solid}
+#statsBox{display:none;position:fixed;inset:0;z-index:80;background:rgba(5,15,30,.72);align-items:center;justify-content:center;padding:16px}
+#statsBox.on{display:flex}
+#statsBox .card{background:#fbfbf8;color:#1d2733;border-radius:14px;max-width:640px;width:100%;max-height:90vh;overflow:auto;padding:18px 20px;box-shadow:0 10px 40px rgba(0,0,0,.4);font:14px/1.45 system-ui,sans-serif}
+#statsBox h2{margin:0 0 4px;font-size:20px;color:#0b2e59}
+#statsBox h3{margin:16px 0 6px;font-size:14px;color:#0b2e59}
+#statsBox .sub{color:#5a6878;font-size:12px;margin-bottom:12px}
+#statsBox .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px}
+#statsBox .kpi{background:#eef3f8;border-radius:10px;padding:10px}
+#statsBox .kpi b{display:block;font-size:24px;color:#0b2e59}
+#statsBox .row{display:grid;grid-template-columns:150px 1fr 40px;gap:8px;align-items:center;margin:3px 0;font-size:13px}
+#statsBox .bar{height:10px;border-radius:5px;background:#1f5fbf}
+#statsBox .acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+#statsBox .acts button{font:600 13px system-ui,sans-serif;border-radius:999px;padding:7px 14px;border:1px solid #0b2e59;background:#fff;color:#0b2e59;cursor:pointer}
+#statsBox .acts button.pri{background:#0b2e59;color:#fff}
 #pad .up{grid-column:2}#pad .lf{grid-column:1;grid-row:2}#pad .dn{grid-column:2;grid-row:2}#pad .rt{grid-column:3;grid-row:2}
 </style>
 </head>
@@ -4236,13 +4251,13 @@ function go(i,instant){
   moveGuide(i,instant);const sp=sayOnce(s.t);
   if(renderer.xr.isPresenting||phone)return sp;
   const fromP=camera.position.clone(),fromT=controls.target.clone();
-  const toP=new THREE.Vector3(...s.pos),look=new THREE.Vector3(...s.look);
+  const look=new THREE.Vector3(...s.look);const toP=((()=>{try{return tour.on;}catch(e){return false;}})()&&!s.orbit&&!instant)?camera.position.clone():new THREE.Vector3(...s.pos); // en el recorrido guiado no te mueve: solo gira la vista hacia el letrero
   const toT=s.orbit?look:toP.clone().add(look.clone().sub(toP).normalize().multiplyScalar(.15));
   controls.rotateSpeed=s.orbit?0.6:-0.35;
   controls.minPolarAngle=s.orbit?0.2:0.6;controls.maxPolarAngle=s.orbit?1.3:2.4;
   ceil.visible=!s.orbit;
-  if(instant||matchMedia('(prefers-reduced-motion: reduce)').matches){camera.position.copy(toP);controls.target.copy(toT);anim=null;return;}
-  anim={t:0,fromP,fromT,toP,toT};
+  if(instant||matchMedia('(prefers-reduced-motion: reduce)').matches){camera.position.copy(toP);controls.target.copy(toT);anim=null;return sp;}
+  anim={t:0,fromP,fromT,toP,toT};return sp;
 }
 stations.forEach((s,i)=>{const b=document.createElement('button');b.textContent=s.n;b.onclick=()=>go(i);nav.appendChild(b);});
 go(0,true);
@@ -4306,7 +4321,6 @@ function onSelect(c){if(!renderer.xr.isPresenting)return;if(!gateOpen){openGate(
     calib.step++;if(calib.step<3)drawInstr(CAL[calib.step]);else finishCalib();}
   else if(inStart&&startBtn.visible)startGuided();
   else if(panelSelect(hitPanel(c))){}
-  else if(luigiTalking())stopLuigi();
   else if(tour.on&&tour.wait>=0)arrive(tour.wait);}
 function onSqueeze(c){if(!gateOpen){openGate();return;}if(c&&c.userData.didGrab){c.userData.didGrab=false;return;}if(!renderer.xr.isPresenting)return;if(calib.step<3){endCalibUI();startChosen();}else startCalib();}
 function finishCalib(auto){
@@ -4732,7 +4746,7 @@ function updateFloaters(dt,now){for(let i=floaters.length-1;i>=0;i--){const f=fl
     g.userData.home=null;floaters.splice(i,1);if(outPanel===g)outPanel=null;if(g.userData.lab)labCollapse(g);}}}
 function panelInfo(g){const u=g.userData;if(u.say)return{title:u.sayTitle,text:u.say,gp:u.gp};const s=stations[u.st];return{title:s.n,text:s.t,gp:s.g};}
 function explainText(title,text,gp){capT.textContent='Luigi: '+title;capP.textContent=text;drawBubble(title,text);if(gp)guideTo(gp);return sayOnce(text);}
-async function explainPanel(g){
+async function explainPanel(g){try{STATS.panel(g.userData.title||g.userData.sayTitle);}catch(e){}
   {const n=performance.now();if(g===lastPanel&&n-lastPanelT<1500)return;lastPanel=g;lastPanelT=n;}
   if(curText===panelInfo(g).text&&!luigiAu.paused){const inf=panelInfo(g);capT.textContent='Luigi: '+inf.title;capP.textContent=inf.text;drawBubble(inf.title,inf.text);return;}
   if(tour.on&&g.userData.st!=null&&g.userData.st===tour.wait){arrive(tour.wait);return;}
@@ -4805,9 +4819,13 @@ function invite(i){
 }
 async function arrive(i){
   const my=++tour.token;tour.wait=-1;tour.cur=i;spot.visible=false;
-  await go(i);await wait(1200);
+  const t0=performance.now();await go(i);
+  // si alguien calló a Luigi, el recorrido espera aquí hasta que lo reactiven
+  while(tour.on&&my===tour.token&&hushT>t0)await wait(300);
+  if(resumeP){const p=resumeP;resumeP=null;await p;}
+  await wait(1200);
   if(!tour.on||my!==tour.token)return;
-  if(i<LAST_XR)invite(i+1);else{tour.on=false;go(9);}
+  if(i<LAST_XR)invite(i+1);else{tour.on=false;try{STATS.guidedEnd();}catch(e){}go(9);}
 }
 function startWalkTour(){tour.on=true;tour.cur=-1;tour.token++;moveGuide(0,true);invite(0);}
 const FREE_INTRO='¡Hola! Soy Luigi. Recorre la oficina a tu ritmo: apunta a cualquier letrero de las paredes y tómalo, o toca los muebles del centro para desplegar su información. Yo te lo explico.';
@@ -4815,8 +4833,9 @@ function startFree(){tour.on=false;tour.wait=-1;tour.token++;spot.visible=false;
 // ===== Callar a Luigi: gatillo/pellizco en un espacio vacío o sobre Luigi, botón B/Y del control, botón Y del mando, tecla M, o diciendo "Luigi, para" =====
 let hushT=-1e9;
 function luigiTalking(){return (typeof luigiAu!=='undefined'&&!luigiAu.paused)||('speechSynthesis' in window&&speechSynthesis.speaking);}
+let resumeP=null;
 function resumeLuigi(){hushT=-1e9;if(tour.on&&tour.wait>=0){invite(tour.wait);return;}if(!lastSaid)return;
-  try{capT.textContent='Luigi: '+lastTitle;capP.textContent=lastSaid;drawBubble(lastTitle,lastSaid);}catch(e){}stopSpeak();speak(lastSaid);}
+  try{capT.textContent='Luigi: '+lastTitle;capP.textContent=lastSaid;drawBubble(lastTitle,lastSaid);}catch(e){}stopSpeak();resumeP=speak(lastSaid);}
 function toggleLuigi(){if(luigiTalking())stopLuigi();else resumeLuigi();}
 function stopLuigi(){hushT=performance.now();stopSpeak();try{capT.textContent='Luigi';capP.textContent='🔇 En silencio. Tócame o di «Luigi» para que siga hablando.';drawBubble('Luigi','🔇 En silencio');}catch(e){}}
 addEventListener('keydown',e=>{if(e.code==='KeyM')toggleLuigi();});
@@ -4866,7 +4885,7 @@ const gate=new THREE.Group();scene.add(gate);
   btn.position.y=-.45;btn.name='btn';btn.visible=false;gate.add(btn);}
 const gateBg=new THREE.Color('#000000');
 function closeGate(){gateOpen=false;try{bgmWant=true;if(!bgmOn)bgmPlay();}catch(e){}chosenStarted=false;if(typeof startTok!=='undefined')startTok++;try{stopSpeak();}catch(e){}if(typeof tour!=='undefined'){tour.on=false;tour.wait=-1;tour.token++;}gate.visible=true;world.visible=false;gate.userData.placed=false;scene.background=renderer.xr.isPresenting&&isAR?null:gateBg;}
-function openGate(){if(gateOpen)return;const again=endMode;if(again)restartTour();gateOpen=true;startVoiceCmd();gate.visible=false;world.visible=true;scene.background=renderer.xr.isPresenting&&isAR?null:bgColor;
+function openGate(){if(gateOpen)return;const again=endMode;try{STATS.start();}catch(e){}if(again)restartTour();gateOpen=true;startVoiceCmd();gate.visible=false;world.visible=true;scene.background=renderer.xr.isPresenting&&isAR?null:bgColor;
   unlockAudio();startReveal();if(renderer.xr.isPresenting){if(again)startChosen();else startAutoCalib();}else if(phone)startChosen();}
 function updateGate(dt){if(gateOpen)return;const t=performance.now()/1000;
   ['txt','hint'].forEach(n=>gate.getObjectByName(n).visible=!endMode);['thx','btn'].forEach(n=>gate.getObjectByName(n).visible=endMode);
@@ -4927,7 +4946,7 @@ async function enterPhone(stereo){
   controls.enabled=false;anim=null;camera.position.set(1.0,1.6,1.35);phone.man=-Math.PI/2; // de pie junto a la puerta, mirando al fondo
   bubble.visible=true;phReticle.visible=stereo;camera.fov=stereo?85:70;
   setTimeout(resize,60);setTimeout(resize,500);closeGate();if(stereo){setTimeout(()=>{if(!SEP)SEP=sepDefault();showSep();document.body.classList.add('cal');},600);}}
-function exitPhone(){if(!phone)return;phone=null;stopMusic();endMode=false;document.body.classList.remove('cal');scene.remove(camera);document.body.classList.remove('phonevr','stereo');
+function exitPhone(){if(!phone)return;try{STATS.close(false);}catch(e){}phone=null;stopMusic();endMode=false;document.body.classList.remove('cal');scene.remove(camera);document.body.classList.remove('phonevr','stereo');
   try{if(document.fullscreenElement)document.exitFullscreen();}catch(e){}try{screen.orientation.unlock();}catch(e){}
   controls.enabled=true;phReticle.visible=false;bubble.visible=false;camera.fov=65;tour.on=false;tour.wait=-1;tour.token++;spot.visible=false;stopSpeak();
   gateOpen=true;gate.visible=false;world.visible=true;scene.background=bgColor;setTimeout(()=>{resize();go(current,true);},80);}
@@ -4995,7 +5014,7 @@ function renderStereo(){const sz=renderer.getSize(new THREE.Vector2());const css
   renderer.setScissorTest(false);renderer.setViewport(0,0,sz.x,sz.y);}
 // ===== Salir por la puerta termina el recorrido =====
 let endMode=false,exitArmed=false,jsMoved=false;
-function endTour(){if(endMode)return;endMode=true;try{stopSpeak();}catch(e){}tour.on=false;tour.wait=-1;tour.token++;spot.visible=false;
+function endTour(){if(endMode)return;endMode=true;try{STATS.close(true);}catch(e){}try{stopSpeak();}catch(e){}tour.on=false;tour.wait=-1;tour.token++;spot.visible=false;
   try{returnAll();}catch(e){}instr.visible=false;closeGate();}
 function updateExit(){if(!gateOpen||endMode||!(renderer.xr.isPresenting||phone))return;if(renderer.xr.isPresenting&&calib.step<3)return;
   const hp=new THREE.Vector3();headPos(hp);world.worldToLocal(hp);
@@ -5050,7 +5069,7 @@ function updateLobby(dt){const on=lobbyActive();startRing.visible=on;const t=per
   else inStart=false;
   const u=startBtn.userData,to=inStart?1:0;if(u.v!==to){u.v+=Math.sign(to-u.v)*Math.min(Math.abs(to-u.v),dt/.45);}
   startBtn.visible=u.v>0;if(startBtn.visible)shapeBtn(u.v);}
-function startGuided(){inStart=false;startBtn.visible=false;freeMode=false;tour.on=true;tour.wait=-1;tour.token++;tour.cur=0;current=0;spot.visible=false;
+function startGuided(){try{STATS.guided();}catch(e){}inStart=false;startBtn.visible=false;freeMode=false;tour.on=true;tour.wait=-1;tour.token++;tour.cur=0;current=0;spot.visible=false;
   const my=tour.token;capT.textContent='Luigi';capP.textContent=GUIDED_TXT;drawBubble('Luigi',GUIDED_TXT);hushT=-1e9;stopSpeak();
   speak(GUIDED_TXT).then(()=>{if(tour.on&&my===tour.token)invite(1);});}
 function startLobby(){tour.on=false;tour.wait=-1;tour.token++;spot.visible=false;freeMode=true;guideTo([2.7,2.9]);explainText('Luigi',LOBBY_TXT,null);}
@@ -5120,7 +5139,7 @@ async function startXR(mode){
     placeForXR(true);await renderer.xr.setSession(s);
     bubble.visible=true;ceil.visible=true;
     closeGate();
-    s.addEventListener('end',()=>{stopMusic();endMode=false;gateOpen=true;gate.visible=false;world.visible=true;autoCal=null;isAR=false;returnAll();tour.on=false;tour.wait=-1;tour.token++;spot.visible=false;stopSpeak();roomShell.visible=true;scene.background=bgColor;placeForXR(false);applyScale(1,1);endCalibUI();bubble.visible=false;hushT=performance.now();go(current,true);});
+    s.addEventListener('end',()=>{try{STATS.close(false);}catch(e){}stopMusic();endMode=false;gateOpen=true;gate.visible=false;world.visible=true;autoCal=null;isAR=false;returnAll();tour.on=false;tour.wait=-1;tour.token++;spot.visible=false;stopSpeak();roomShell.visible=true;scene.background=bgColor;placeForXR(false);applyScale(1,1);endCalibUI();bubble.visible=false;hushT=performance.now();go(current,true);});
   }catch(e){alert('No se pudo iniciar la sesión inmersiva: '+e.message);}
 }
 const bVR=document.getElementById('btnVR'),bAR=document.getElementById('btnAR');
@@ -5130,6 +5149,41 @@ async function check(btn,mode,label){
 }
 {const xr=document.getElementById('xr');const b1=document.createElement('button');b1.type='button';b1.className='phone';b1.textContent='📱 Visor para teléfono (3D)';b1.onclick=()=>enterPhone(true);
  const b2=document.createElement('button');b2.type='button';b2.className='phone';b2.textContent='🔄 Modo 360 en el teléfono';b2.onclick=()=>enterPhone(false);xr.appendChild(b1);xr.appendChild(b2);}
+// ===== Estadísticas de uso (se guardan en este dispositivo) =====
+const STATS=(()=>{const KEY='codocaStats1';let S;
+  const blank=()=>({inicios:0,completados:0,guiados:0,guiadosFin:0,tiempoTotal:0,visitasCerradas:0,modos:{},dias:{},letreros:{},primera:null});
+  try{S=JSON.parse(localStorage.getItem(KEY)||'null')||blank();}catch(e){S=blank();}
+  const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}};
+  let cur=null;
+  const day=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');};
+  const mode=()=>renderer.xr.isPresenting?(isAR?'Gafas (realidad mixta)':'Gafas (VR)'):phone?(phone.stereo?'Teléfono (visor 3D)':'Teléfono (360)'):'Computadora';
+  return {
+    start(){this.close();S.inicios++;const m=mode();S.modos[m]=(S.modos[m]||0)+1;const d=day();S.dias[d]=(S.dias[d]||0)+1;if(!S.primera)S.primera=d;cur={t0:performance.now()};save();},
+    close(done){if(!cur)return;const s=(performance.now()-cur.t0)/1000;if(s>5&&s<4*3600){S.tiempoTotal+=s;S.visitasCerradas++;}if(done)S.completados++;cur=null;save();},
+    guided(){S.guiados++;save();},guidedEnd(){S.guiadosFin++;save();},
+    panel(t){if(!t||!cur)return;S.letreros[t]=(S.letreros[t]||0)+1;save();},
+    get(){return S;},reset(){S=blank();cur=null;save();}};})();
+function fmtMin(s){const m=Math.floor(s/60),r=Math.round(s%60);return m+' min '+String(r).padStart(2,'0')+' s';}
+function renderStats(){const S=STATS.get();const box=document.getElementById('statsBox');
+  const prom=S.visitasCerradas?fmtMin(S.tiempoTotal/S.visitasCerradas):'—';
+  const pct=(a,b)=>b?Math.round(a/b*100)+' %':'—';
+  const bars=(obj,lim)=>{const e=Object.entries(obj).sort((a,b)=>b[1]-a[1]).slice(0,lim||10);const mx=Math.max(1,...e.map(x=>x[1]));
+    return e.length?e.map(([k,v])=>`<div class="row"><span>${k}</span><div class="bar" style="width:${Math.max(4,v/mx*100)}%"></div><b>${v}</b></div>`).join(''):'<div class="sub">Sin datos todavía.</div>';};
+  const dias=Object.entries(S.dias).sort((a,b)=>a[0]<b[0]?1:-1).slice(0,10);const mxd=Math.max(1,...dias.map(x=>x[1]));
+  box.querySelector('.card').innerHTML=`<h2>Estadísticas del recorrido</h2><div class="sub">Datos de este dispositivo${S.primera?' desde el '+S.primera:''}.</div>
+   <div class="kpis"><div class="kpi"><b>${S.inicios}</b>recorridos iniciados</div><div class="kpi"><b>${S.completados}</b>salieron por la puerta (${pct(S.completados,S.inicios)})</div>
+   <div class="kpi"><b>${S.guiados}</b>usaron el recorrido guiado</div><div class="kpi"><b>${S.guiadosFin}</b>terminaron el guiado</div><div class="kpi"><b>${prom}</b>tiempo promedio</div></div>
+   <h3>Letreros y tarjetas más consultados</h3>${bars(S.letreros,10)}
+   <h3>Cómo entraron</h3>${bars(S.modos)}
+   <h3>Recorridos por día</h3>${dias.length?dias.map(([k,v])=>`<div class="row"><span>${k}</span><div class="bar" style="width:${Math.max(4,v/mxd*100)}%"></div><b>${v}</b></div>`).join(''):'<div class="sub">Sin datos todavía.</div>'}
+   <div class="acts"><button class="pri" id="stClose">Cerrar</button><button id="stCsv">Descargar CSV</button><button id="stReset">Reiniciar estadísticas</button></div>`;
+  box.querySelector('#stClose').onclick=()=>box.classList.remove('on');
+  box.querySelector('#stReset').onclick=()=>{if(confirm('¿Borrar todas las estadísticas de este dispositivo?')){STATS.reset();renderStats();}};
+  box.querySelector('#stCsv').onclick=()=>{const S=STATS.get();const L=[['Indicador','Valor'],['Recorridos iniciados',S.inicios],['Salieron por la puerta',S.completados],['Usaron el recorrido guiado',S.guiados],['Terminaron el guiado',S.guiadosFin],['Tiempo promedio (min)',S.visitasCerradas?(S.tiempoTotal/S.visitasCerradas/60).toFixed(1):''],[],['Letrero','Consultas'],...Object.entries(S.letreros).sort((a,b)=>b[1]-a[1]),[],['Modo','Recorridos'],...Object.entries(S.modos),[],['Día','Recorridos'],...Object.entries(S.dias).sort()];
+    const csv='﻿'+L.map(r=>r.map(c=>'"'+String(c==null?'':c).replace(/"/g,'""')+'"').join(',')).join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='estadisticas_recorrido_codoca.csv';document.body.appendChild(a);a.click();a.remove();};}
+{const box=document.createElement('div');box.id='statsBox';box.innerHTML='<div class="card"></div>';document.body.appendChild(box);
+ box.addEventListener('click',e=>{if(e.target===box)box.classList.remove('on');});
+ const b=document.createElement('button');b.type='button';b.id='statsBtn';b.textContent='📊 Estadísticas';b.onclick=()=>{renderStats();box.classList.add('on');};document.getElementById('xr').appendChild(b);}
 check(bVR,'immersive-vr','Entrar con gafas (VR)');check(bAR,'immersive-ar','Realidad mixta (AR)');
 
 // ===== Desplazamiento =====

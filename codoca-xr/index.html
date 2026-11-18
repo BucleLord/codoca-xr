@@ -4424,14 +4424,14 @@ const codocaTab=(()=>{const w=.86,vh=.44,g=new THREE.Group();
     for(let i=0;i<N;i++){pos.set([at.x,at.y,at.z],i*3);v.push(new THREE.Vector3(Math.random()-.5,Math.random()-.5,Math.random()-.5).normalize().multiplyScalar(.25+Math.random()*.5));}
     const bg=new THREE.BufferGeometry();bg.setAttribute('position',new THREE.BufferAttribute(pos,3));
     const p=new THREE.Points(bg,new THREE.PointsMaterial({map:DOT,size:.03,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending}));scene.add(p);spark={p,v,t:0};}
-  g.position.set(6.1,1.25,.95);g.rotation.y=0;world.add(g);panels.push(g);
+  g.position.set(4.3,2.58,1.12);g.rotation.y=0;/* flotando sobre los sellos de la mesa */world.add(g);panels.push(g);
   Object.assign(g.userData,{w,h:vh+.1,say:TAB_SAY,sayTitle:'Página web del CODOCA',gp:[1.3,3.2]});
   let m=0,wasOut=false,t=0;
   const ease=x=>x<.5?4*x*x*x:1-Math.pow(-2*x+2,3)/2,back=x=>1+2.6*Math.pow(x-1,3)+1.6*Math.pow(x-1,2);
   g.userData.tick=dt=>{t+=dt;const out=!!g.userData.home;if(out!==wasOut){wasOut=out;burst();}
     m+=((out?1:0)-m)*Math.min(1,dt*(out?3.2:2.6));if(Math.abs(m-(out?1:0))<.002)m=out?1:0;
     // globo: flota, gira, y al tomarlo se encoge girando rápido
-    const gs=Math.max(0,1-ease(Math.min(1,m*1.6)));glb.visible=gs>.01;glb.scale.setScalar(gs*2.7/Math.max(.2,g.scale.x));
+    const gs=Math.max(0,1-ease(Math.min(1,m*1.6)));glb.visible=gs>.01;glb.scale.setScalar(gs*2.2/Math.max(.2,g.scale.x));
     glb.position.set(0,Math.sin(t*1.2)*.02*(1-m),.28*(1-m));
     spin.rotation.y+=dt*(.5+m*12);orbit.rotation.z+=dt*.8;halo.material.opacity=.7+.3*Math.sin(t*2.4);
     const sa=t*1.4;sat.position.set(Math.cos(sa)*.15,Math.sin(sa)*.15*Math.cos(Math.PI/2.4),-Math.sin(sa)*.15*Math.sin(Math.PI/2.4));
@@ -4441,7 +4441,7 @@ const codocaTab=(()=>{const w=.86,vh=.44,g=new THREE.Group();
     win.scale.set(Math.max(.001,ws),Math.max(.001,ws*(.35+.65*Math.min(1,r*1.4))),1);win.position.z=.28*(1-m);
     edge.material.opacity=Math.sin(Math.min(1,r)*Math.PI)*.9;
     // zona de toque: sigue al globo o a la ventana
-    const hs=.8/w+(1-.8/w)*m;hit.scale.set(hs,(.84/(vh+.1))*(1-m)+m,1);hit.position.set(0,.035*m,.28*(1-m));
+    const hs=.66/w+(1-.66/w)*m;hit.scale.set(hs,(.7/(vh+.1))*(1-m)+m,1);hit.position.set(0,.035*m,.28*(1-m));
     if(m>.3&&tabVid.paused&&tabVid.src){const p=tabVid.play();if(p)p.catch(()=>{});}else if(m<.3&&!tabVid.paused)tabVid.pause();
     if(spark){spark.t+=dt;const a=spark.p.geometry.attributes.position.array;spark.v.forEach((v,i)=>{a[i*3]+=v.x*dt;a[i*3+1]+=v.y*dt;a[i*3+2]+=v.z*dt;v.multiplyScalar(.95);});
       spark.p.geometry.attributes.position.needsUpdate=true;spark.p.material.opacity=Math.max(0,1-spark.t/.9);if(spark.t>.9){scene.remove(spark.p);spark=null;}}};

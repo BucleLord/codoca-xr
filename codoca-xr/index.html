@@ -4844,7 +4844,7 @@ let voiceCmd=null;
 function startVoiceCmd(){const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR||voiceCmd)return;
   try{voiceCmd=new SR();voiceCmd.lang='es-DO';voiceCmd.continuous=true;voiceCmd.interimResults=true;
     voiceCmd.onresult=ev=>{for(let i=ev.resultIndex;i<ev.results.length;i++){const t=ev.results[i][0].transcript.toLowerCase();
-      if(/\b(para|detente|silencio|alto|basta|stop|cállate|callate)\b/.test(t)){if(luigiTalking())stopLuigi();}
+      if(/\b(detente|silencio|basta|stop|cállate|callate)\b/.test(t)||/luigi[ ,.]+(para|alto)\b/.test(t)){if(luigiTalking())stopLuigi();} // «para» y «alto» solos no: Luigi los dice en sus explicaciones y el micrófono lo oía
       else if(ev.results[i].isFinal&&/\b(luigi|habla|continúa|continua|sigue|repite|explica)\b/.test(t)&&!luigiTalking())resumeLuigi();}};
     voiceCmd.onend=()=>{if(voiceCmd){try{voiceCmd.start();}catch(e){}}};voiceCmd.onerror=e=>{if(e.error==='not-allowed'||e.error==='service-not-allowed')voiceCmd=null;};voiceCmd.start();}catch(e){voiceCmd=null;}}
 let freeMode=false;

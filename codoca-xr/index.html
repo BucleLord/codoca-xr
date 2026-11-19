@@ -5247,7 +5247,8 @@ function snapTurn(a){jsMoved=true;const hp=new THREE.Vector3();headPos(hp);hp.y=
 let xrFrame=null,loopErr=0;
 renderer.setAnimationLoop((time,frame)=>{xrFrame=frame||null;try{
   const tnow=performance.now();const dt=Math.min(.05,(tnow-lastT)/1000);lastT=tnow;updateTab(dt);updateLab(dt);updateProj(dt);updatePhone(dt);updateGate(dt);updateMusic(dt);updateExit();updateLobby(dt);slideDoor.update(dt);
-  bubble.visible=(renderer.xr.isPresenting||!!phone||REC.active())&&gateOpen&&revT>9.8; // el globo de Luigi solo cuando él ya aparecióif(gateOpen)updateReveal(dt);
+  bubble.visible=(renderer.xr.isPresenting||!!phone||REC.active())&&gateOpen&&revT>9.8; /* el globo de Luigi solo cuando él ya apareció */
+  if(gateOpen)updateReveal(dt);
   // gafas: joystick izquierdo camina, derecho gira suave
   if(renderer.xr.isPresenting&&calib.step>=3){const ses=renderer.xr.getSession();
     if(ses)for(const src of ses.inputSources){const gp=src.gamepad;if(gp&&gp.buttons[5]){const pr=gp.buttons[5].pressed;if(pr&&!src._by)toggleLuigi();src._by=pr;}if(!gp||gp.axes.length<4)continue;const ax=gp.axes[2],ay=gp.axes[3];

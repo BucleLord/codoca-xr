@@ -83,6 +83,17 @@ body.phonevr.stereo #phoneHint{display:flex;position:fixed;inset:0;z-index:58;al
 #statsBox .acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
 #statsBox .acts button{font:600 13px system-ui,sans-serif;border-radius:999px;padding:7px 14px;border:1px solid #0b2e59;background:#fff;color:#0b2e59;cursor:pointer}
 #statsBox .acts button.pri{background:#0b2e59;color:#fff}
+body.rec916 header,body.rec916 #tour,body.rec916 #modo,body.rec916 #xr,body.rec916 #caption,body.rec916 #hint{display:none!important}
+body.rec916{background:#000}
+body.rec916 #stage{position:fixed!important;top:0;bottom:0;left:50%;transform:translateX(-50%);height:100vh;height:100dvh;width:min(100vw,calc(100dvh*9/16));z-index:40;background:#000}
+#recBar{display:none}body.rec916 #recBar{display:flex;align-items:center;gap:10px;position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:70;background:rgba(0,0,0,.72);color:#fff;
+  font:600 14px system-ui,sans-serif;padding:8px 10px 8px 14px;border-radius:999px;box-shadow:0 4px 16px rgba(0,0,0,.4)}
+#recBar .dot{width:12px;height:12px;border-radius:50%;background:#ff3b30;animation:recb 1s infinite}@keyframes recb{50%{opacity:.25}}
+#recT{display:inline-block;min-width:44px;font-variant-numeric:tabular-nums}
+#recBar button{font:700 13px system-ui,sans-serif;border:0;border-radius:999px;padding:7px 12px;background:#ff3b30;color:#fff;cursor:pointer}
+#recBar button.alt{background:#555}
+#recHelp{display:none}body.rec916 #recHelp{display:block;position:fixed;left:12px;bottom:12px;max-width:260px;z-index:70;background:rgba(0,0,0,.6);color:#fff;font:13px/1.4 system-ui,sans-serif;padding:10px 12px;border-radius:10px}
+@media (max-width:700px){body.rec916 #recHelp{display:none}}
 #pad .up{grid-column:2}#pad .lf{grid-column:1;grid-row:2}#pad .dn{grid-column:2;grid-row:2}#pad .rt{grid-column:3;grid-row:2}
 </style>
 </head>
@@ -4262,7 +4273,7 @@ function go(i,instant){
 stations.forEach((s,i)=>{const b=document.createElement('button');b.textContent=s.n;b.onclick=()=>go(i);nav.appendChild(b);});
 go(0,true);
 
-function resize(){const r=stage.getBoundingClientRect();renderer.setSize(r.width,r.height,false);camera.aspect=r.width/Math.max(r.height,1);camera.updateProjectionMatrix();}
+function resize(){const r=stage.getBoundingClientRect();if(document.body.classList.contains('rec916'))renderer.setPixelRatio(1080/Math.max(1,r.width));else renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.setSize(r.width,r.height,false);camera.aspect=r.width/Math.max(r.height,1);camera.updateProjectionMatrix();}
 new ResizeObserver(resize).observe(stage);resize();
 
 // ===== Calibración con el aula real (3 esquinas) =====
@@ -5181,6 +5192,31 @@ function renderStats(){const S=STATS.get();const box=document.getElementById('st
   box.querySelector('#stReset').onclick=()=>{if(confirm('¿Borrar todas las estadísticas de este dispositivo?')){STATS.reset();renderStats();}};
   box.querySelector('#stCsv').onclick=()=>{const S=STATS.get();const L=[['Indicador','Valor'],['Recorridos iniciados',S.inicios],['Salieron por la puerta',S.completados],['Usaron el recorrido guiado',S.guiados],['Terminaron el guiado',S.guiadosFin],['Tiempo promedio (min)',S.visitasCerradas?(S.tiempoTotal/S.visitasCerradas/60).toFixed(1):''],[],['Letrero','Consultas'],...Object.entries(S.letreros).sort((a,b)=>b[1]-a[1]),[],['Modo','Recorridos'],...Object.entries(S.modos),[],['Día','Recorridos'],...Object.entries(S.dias).sort()];
     const csv='﻿'+L.map(r=>r.map(c=>'"'+String(c==null?'':c).replace(/"/g,'""')+'"').join(',')).join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='estadisticas_recorrido_codoca.csv';document.body.appendChild(a);a.click();a.remove();};}
+// ===== Grabar video vertical (9:16, para Instagram) desde la pantalla de inicio =====
+const REC=(()=>{let mr=null,chunks=[],t0=0,tick=null,actx=null,dest=null,keepFov=65,mime='';
+  const bar=document.createElement('div');bar.id='recBar';bar.innerHTML='<span class="dot"></span><span id="recT">00:00</span><button type="button" id="recStop">■ Detener y guardar</button><button type="button" class="alt" id="recCancel">Cancelar</button>';document.body.appendChild(bar);
+  const help=document.createElement('div');help.id='recHelp';help.innerHTML='<b>Grabando en vertical.</b><br>Clic en el escudo para iniciar. Camina con las flechas o W A S D y arrastra para mirar. Solo se graba la imagen del aula y el sonido, no estos botones.';document.body.appendChild(help);
+  function audio(){if(actx)return;try{actx=new (window.AudioContext||window.webkitAudioContext)();dest=actx.createMediaStreamDestination();
+    [luigiAu,bgm].forEach(el=>{try{const s=actx.createMediaElementSource(el);s.connect(actx.destination);s.connect(dest);}catch(e){}});}catch(e){actx=null;}}
+  function pick(){const c=['video/mp4;codecs=avc1.42E01E,mp4a.40.2','video/mp4;codecs=avc1.4D401F,mp4a.40.2','video/mp4;codecs=avc1,mp4a.40.2','video/mp4;codecs=avc1.42E01E,opus','video/mp4;codecs=avc1','video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm'];
+    for(const m of c){try{if(window.MediaRecorder&&MediaRecorder.isTypeSupported(m))return m;}catch(e){}}return '';}
+  function layout(on){document.body.classList.toggle('rec916',on);bubble.visible=on||renderer.xr.isPresenting||!!phone;
+    if(on){keepFov=camera.fov;camera.fov=80;}else camera.fov=keepFov;setTimeout(resize,50);setTimeout(resize,400);}
+  function finish(save){if(tick)clearInterval(tick);tick=null;const r=mr;mr=null;layout(false);
+    if(!r)return;r.onstop=()=>{if(save&&chunks.length){const ext=mime.includes('mp4')?'mp4':'webm';const blob=new Blob(chunks,{type:mime||'video/webm'});
+      const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='recorrido_codoca_vertical.'+ext;document.body.appendChild(a);a.click();a.remove();}chunks=[];};
+    try{r.stop();}catch(e){}}
+  bar.querySelector('#recStop').onclick=()=>finish(true);bar.querySelector('#recCancel').onclick=()=>finish(false);
+  return {active:()=>!!mr,start(){if(mr||!window.MediaRecorder||!renderer.domElement.captureStream){alert('Este navegador no permite grabar. Usa Chrome o Edge en la computadora.');return;}
+    audio();try{actx&&actx.resume();}catch(e){}layout(true);
+    // empieza desde la pantalla negra con el escudo
+    stopSpeak();tour.on=false;tour.wait=-1;tour.token++;spot.visible=false;try{returnAll();}catch(e){}endMode=false;
+    camera.position.set(1.0,1.6,1.35);controls.target.set(4,1.4,1.35);controls.update();anim=null;closeGate();
+    setTimeout(()=>{mime=pick();const vs=renderer.domElement.captureStream(30);const tracks=[...vs.getVideoTracks()];if(dest)tracks.push(...dest.stream.getAudioTracks());
+      try{mr=new MediaRecorder(new MediaStream(tracks),mime?{mimeType:mime,videoBitsPerSecond:8000000,audioBitsPerSecond:128000}:{});}catch(e){mr=new MediaRecorder(new MediaStream(tracks));mime=mr.mimeType||'video/webm';}
+      chunks=[];mr.ondataavailable=e=>{if(e.data&&e.data.size)chunks.push(e.data);};mr.start(1000);t0=performance.now();
+      tick=setInterval(()=>{const s=Math.floor((performance.now()-t0)/1000);document.getElementById('recT').textContent=String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');},500);},500);}};})();
+{const b=document.createElement('button');b.type='button';b.textContent='🎬 Grabar video vertical (Instagram)';b.onclick=()=>REC.start();document.getElementById('xr').appendChild(b);}
 {const box=document.createElement('div');box.id='statsBox';box.innerHTML='<div class="card"></div>';document.body.appendChild(box);
  box.addEventListener('click',e=>{if(e.target===box)box.classList.remove('on');});
  const b=document.createElement('button');b.type='button';b.id='statsBtn';b.textContent='📊 Estadísticas';b.onclick=()=>{renderStats();box.classList.add('on');};document.getElementById('xr').appendChild(b);}
@@ -5199,7 +5235,8 @@ function snapTurn(a){jsMoved=true;const hp=new THREE.Vector3();headPos(hp);hp.y=
   world.position.sub(hp).applyAxisAngle(new THREE.Vector3(0,1,0),a).add(hp);world.rotation.y+=a;}
 let xrFrame=null,loopErr=0;
 renderer.setAnimationLoop((time,frame)=>{xrFrame=frame||null;try{
-  const tnow=performance.now();const dt=Math.min(.05,(tnow-lastT)/1000);lastT=tnow;updateTab(dt);updateLab(dt);updateProj(dt);updatePhone(dt);updateGate(dt);updateMusic(dt);updateExit();updateLobby(dt);slideDoor.update(dt);if(gateOpen)updateReveal(dt);
+  const tnow=performance.now();const dt=Math.min(.05,(tnow-lastT)/1000);lastT=tnow;updateTab(dt);updateLab(dt);updateProj(dt);updatePhone(dt);updateGate(dt);updateMusic(dt);updateExit();updateLobby(dt);slideDoor.update(dt);
+  bubble.visible=(renderer.xr.isPresenting||!!phone||REC.active())&&gateOpen&&revT>9.8; // el globo de Luigi solo cuando él ya aparecióif(gateOpen)updateReveal(dt);
   // gafas: joystick izquierdo camina, derecho gira suave
   if(renderer.xr.isPresenting&&calib.step>=3){const ses=renderer.xr.getSession();
     if(ses)for(const src of ses.inputSources){const gp=src.gamepad;if(gp&&gp.buttons[5]){const pr=gp.buttons[5].pressed;if(pr&&!src._by)toggleLuigi();src._by=pr;}if(!gp||gp.axes.length<4)continue;const ax=gp.axes[2],ay=gp.axes[3];

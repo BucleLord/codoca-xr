@@ -94,6 +94,12 @@ body.rec916 #stage{position:fixed!important;top:50%;left:50%;transform:translate
 #recBar button.alt{background:#555}
 #recHelp{display:none}body.rec916 #recHelp{display:block;position:fixed;left:12px;bottom:12px;max-width:260px;z-index:70;background:rgba(0,0,0,.6);color:#fff;font:13px/1.4 system-ui,sans-serif;padding:10px 12px;border-radius:10px}
 @media (max-width:700px){body.rec916 #recHelp{display:none}}
+#only360{display:none}body.only360 header,body.only360 #tour,body.only360 #modo,body.only360 #xr,body.only360 #caption,body.only360 #hint,body.only360 #pad{display:none!important}
+body.only360:not(.phonevr) #only360{display:flex;position:fixed;inset:0;z-index:90;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:24px;text-align:center;
+  background:radial-gradient(circle at 50% 40%,#123d6e,#050b16 70%);color:#eaf4ff;font:16px/1.45 system-ui,sans-serif}
+#only360 h1{margin:0;font:800 26px/1.2 system-ui,sans-serif}#only360 p{margin:0;max-width:340px;color:#b9d2ee}
+#only360 button{font:800 18px system-ui,sans-serif;border:0;border-radius:999px;padding:16px 28px;background:#f2b705;color:#0b2e59;box-shadow:0 6px 24px rgba(242,183,5,.35);cursor:pointer}
+#only360 small{color:#8fb0d4;max-width:320px}
 #pad .up{grid-column:2}#pad .lf{grid-column:1;grid-row:2}#pad .dn{grid-column:2;grid-row:2}#pad .rt{grid-column:3;grid-row:2}
 </style>
 </head>
@@ -5216,6 +5222,11 @@ const REC=(()=>{let mr=null,chunks=[],t0=0,tick=null,actx=null,dest=null,keepFov
       try{mr=new MediaRecorder(new MediaStream(tracks),mime?{mimeType:mime,videoBitsPerSecond:8000000,audioBitsPerSecond:128000}:{});}catch(e){mr=new MediaRecorder(new MediaStream(tracks));mime=mr.mimeType||'video/webm';}
       chunks=[];mr.ondataavailable=e=>{if(e.data&&e.data.size)chunks.push(e.data);};mr.start(1000);t0=performance.now();
       tick=setInterval(()=>{const s=Math.floor((performance.now()-t0)/1000);document.getElementById('recT').textContent=String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');},500);},500);}};})();
+// ===== Acceso directo al modo 360 desde un código QR (?modo=360) =====
+if(/[?&]modo=360\b/.test(location.search)){document.body.classList.add('only360');
+  const d=document.createElement('div');d.id='only360';
+  d.innerHTML='<h1>Oficina virtual del CODOCA</h1><p>Recorrido 360° del Politécnico Padre Luis Variara</p><button type="button">▶ Entrar al recorrido</button><small>Sube el volumen y mueve el teléfono para mirar alrededor. Camina con el joystick dorado.</small>';
+  document.body.appendChild(d);d.querySelector('button').onclick=()=>enterPhone(false);}
 {const b=document.createElement('button');b.type='button';b.textContent='🎬 Grabar video vertical (Instagram)';b.onclick=()=>REC.start();document.getElementById('xr').appendChild(b);}
 {const box=document.createElement('div');box.id='statsBox';box.innerHTML='<div class="card"></div>';document.body.appendChild(box);
  box.addEventListener('click',e=>{if(e.target===box)box.classList.remove('on');});

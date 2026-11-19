@@ -85,12 +85,12 @@ body.phonevr.stereo #phoneHint{display:flex;position:fixed;inset:0;z-index:58;al
 #statsBox .acts button.pri{background:#0b2e59;color:#fff}
 body.rec916 header,body.rec916 #tour,body.rec916 #modo,body.rec916 #xr,body.rec916 #caption,body.rec916 #hint{display:none!important}
 body.rec916{background:#000}
-body.rec916 #stage{position:fixed!important;top:0;bottom:0;left:50%;transform:translateX(-50%);height:100vh;height:100dvh;width:min(100vw,calc(100dvh*9/16));z-index:40;background:#000}
+body.rec916 #stage{position:fixed!important;top:50%;left:50%;transform:translate(-50%,-50%);width:min(100vw,calc(100vh*9/16));width:min(100vw,calc(100dvh*9/16));height:auto;aspect-ratio:9/16;flex:none;z-index:40;background:#000}
 #recBar{display:none}body.rec916 #recBar{display:flex;align-items:center;gap:10px;position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:70;background:rgba(0,0,0,.72);color:#fff;
   font:600 14px system-ui,sans-serif;padding:8px 10px 8px 14px;border-radius:999px;box-shadow:0 4px 16px rgba(0,0,0,.4)}
 #recBar .dot{width:12px;height:12px;border-radius:50%;background:#ff3b30;animation:recb 1s infinite}@keyframes recb{50%{opacity:.25}}
 #recT{display:inline-block;min-width:44px;font-variant-numeric:tabular-nums}
-#recBar button{font:700 13px system-ui,sans-serif;border:0;border-radius:999px;padding:7px 12px;background:#ff3b30;color:#fff;cursor:pointer}
+#recBar button{white-space:nowrap;font:700 13px system-ui,sans-serif;border:0;border-radius:999px;padding:7px 12px;background:#ff3b30;color:#fff;cursor:pointer}
 #recBar button.alt{background:#555}
 #recHelp{display:none}body.rec916 #recHelp{display:block;position:fixed;left:12px;bottom:12px;max-width:260px;z-index:70;background:rgba(0,0,0,.6);color:#fff;font:13px/1.4 system-ui,sans-serif;padding:10px 12px;border-radius:10px}
 @media (max-width:700px){body.rec916 #recHelp{display:none}}
@@ -4273,7 +4273,7 @@ function go(i,instant){
 stations.forEach((s,i)=>{const b=document.createElement('button');b.textContent=s.n;b.onclick=()=>go(i);nav.appendChild(b);});
 go(0,true);
 
-function resize(){const r=stage.getBoundingClientRect();if(document.body.classList.contains('rec916'))renderer.setPixelRatio(1080/Math.max(1,r.width));else renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.setSize(r.width,r.height,false);camera.aspect=r.width/Math.max(r.height,1);camera.updateProjectionMatrix();}
+function resize(){const r=stage.getBoundingClientRect();if(document.body.classList.contains('rec916'))renderer.setPixelRatio((matchMedia('(pointer:coarse)').matches?720:1080)/Math.max(1,r.width)); /* en el teléfono 720×1280 para que vaya fluido */else renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.setSize(r.width,r.height,false);camera.aspect=r.width/Math.max(r.height,1);camera.updateProjectionMatrix();}
 new ResizeObserver(resize).observe(stage);resize();
 
 // ===== Calibración con el aula real (3 esquinas) =====
